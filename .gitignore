@@ -1,0 +1,32 @@
+# .NET build outputs
+**/bin/
+**/obj/
+**/TestResults/
+
+# Frontend dependencies and build outputs
+**/node_modules/
+**/dist/
+**/build/
+**/.vite/
+
+# Local environment files
+.env
+.env.*
+!.env.example
+
+# IDE/editor artifacts
+.vs/
+.vscode/
+.idea/
+*.user
+*.suo
+
+# OS artifacts
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Logs and temporary output
+*.log
+logs/
+.tmp/

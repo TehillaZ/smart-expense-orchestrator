@@ -1,0 +1,117 @@
+version: '3.8'
+
+services:
+  redis:
+    image: "redis:alpine"
+    ports:
+      - "6379:6379"
+    networks:
+      - approval-network
+
+  intakeservice:
+    image: ${DOCKER_REGISTRY-}intakeservice
+    build:
+      context: ..
+      dockerfile: backend/IntakeService/Dockerfile
+    ports:
+      - "5001:8080"
+    depends_on:
+      - redis
+    networks:
+      - approval-network
+
+  intakeservice-dapr:
+    image: "daprio/daprd:1.13.0"
+    command: [
+      "/daprd",
+      "--app-id", "intakeservice",
+      "--app-port", "8080",
+      "--resources-path", "/components"
+    ]
+    volumes:
+      - ./dapr/components:/components
+    depends_on:
+      - intakeservice
+    network_mode: "service:intakeservice"
+
+  approvalservice:
+    image: ${DOCKER_REGISTRY-}approvalservice
+    build:
+      context: ..
+      dockerfile: backend/ApprovalService/Dockerfile
+    ports:
+      - "5002:8080"
+    depends_on:
+      - redis
+    networks:
+      - approval-network
+
+  approvalservice-dapr:
+    image: "daprio/daprd:1.13.0"
+    command: [
+      "/daprd",
+      "--app-id", "approvalservice",
+      "--app-port", "8080",
+      "--resources-path", "/components"
+    ]
+    volumes:
+      - ./dapr/components:/components
+    depends_on:
+      - approvalservice
+    network_mode: "service:approvalservice"
+
+  paymentservice:
+    image: ${DOCKER_REGISTRY-}paymentservice
+    build:
+      context: ..
+      dockerfile: backend/PaymentService/Dockerfile
+    ports:
+      - "5003:8080"
+    depends_on:
+      - redis
+    networks:
+      - approval-network
+
+  paymentservice-dapr:
+    image: "daprio/daprd:1.13.0"
+    command: [
+      "/daprd",
+      "--app-id", "paymentservice",
+      "--app-port", "8080",
+      "--resources-path", "/components"
+    ]
+    volumes:
+      - ./dapr/components:/components
+    depends_on:
+      - paymentservice
+    network_mode: "service:paymentservice"
+
+  notificationservice:
+    image: ${DOCKER_REGISTRY-}notificationservice
+    build:
+      context: ..
+      dockerfile: backend/NotificationService/Dockerfile
+    ports:
+      - "5004:8080"
+    depends_on:
+      - redis
+    networks:
+      - approval-network
+
+  notificationservice-dapr:
+    image: "daprio/daprd:1.13.0"
+    command: [
+      "/daprd",
+      "--app-id", "notificationservice",
+      "--app-port", "8080",
+      "--resources-path", "/components"
+    ]
+    volumes:
+      - ./dapr/components:/components
+    depends_on:
+      - notificationservice
+    network_mode: "service:notificationservice"
+
+networks:
+  approval-network:
+    driver: bridge

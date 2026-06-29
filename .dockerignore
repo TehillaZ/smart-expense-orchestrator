@@ -1,0 +1,43 @@
+# Git metadata
+.git/
+.gitignore
+
+# Docker and compose local overrides
+**/docker-compose.override.yml
+
+# .NET build outputs
+**/bin/
+**/obj/
+**/TestResults/
+**/*.user
+**/*.suo
+
+# Node build outputs and package-manager caches
+**/node_modules/
+**/dist/
+**/build/
+**/.vite/
+**/.next/
+**/.nuxt/
+**/.npm/
+**/.pnpm-store/
+**/.yarn/cache/
+
+# IDE and editor artifacts
+.idea/
+.vs/
+.vscode/
+*.swp
+*.swo
+
+# OS/local artifacts
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Local environment and logs
+.env
+.env.*
+!.env.example
+*.log
+logs/
