@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   redis:
     image: "redis:alpine"
@@ -21,7 +19,7 @@ services:
       - approval-network
 
   intakeservice-dapr:
-    image: "daprio/daprd:1.13.0"
+    image: "daprio/daprd:1.18.4"
     command: [
       "/daprd",
       "--app-id", "intakeservice",
@@ -47,7 +45,7 @@ services:
       - approval-network
 
   approvalservice-dapr:
-    image: "daprio/daprd:1.13.0"
+    image: "daprio/daprd:1.18.4"
     command: [
       "/daprd",
       "--app-id", "approvalservice",
@@ -73,7 +71,7 @@ services:
       - approval-network
 
   paymentservice-dapr:
-    image: "daprio/daprd:1.13.0"
+    image: "daprio/daprd:1.18.4"
     command: [
       "/daprd",
       "--app-id", "paymentservice",
@@ -99,7 +97,7 @@ services:
       - approval-network
 
   notificationservice-dapr:
-    image: "daprio/daprd:1.13.0"
+    image: "daprio/daprd:1.18.4"
     command: [
       "/daprd",
       "--app-id", "notificationservice",
