@@ -1,0 +1,23 @@
+using ApprovalService.Models;
+
+namespace ApprovalService.Services;
+
+public static class PolicySettingsValidator
+{
+    public static IReadOnlyList<string> Validate(PolicySettingsUpdateRequest request)
+    {
+        var errors = new List<string>();
+
+        if (request.AutonomyCeiling is <= 0m)
+        {
+            errors.Add("autonomyCeiling must be greater than 0.");
+        }
+
+        if (request.AutonomyConfidence is < 0m or > 1m)
+        {
+            errors.Add("autonomyConfidence must be between 0 and 1.");
+        }
+
+        return errors;
+    }
+}

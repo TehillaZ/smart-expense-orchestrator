@@ -7,54 +7,73 @@ public static class ApprovalRoutes
 {
     public static IEndpointRouteBuilder MapApprovalRoutes(this IEndpointRouteBuilder app)
     {
-        app.MapGet("/approvals/queue", (ILoggerFactory loggerFactory) =>
+        app.MapGet("/approvals/queue", async (
+            ISubmissionStateStore stateStore,
+            ILoggerFactory loggerFactory) =>
         {
-            var correlationId = Guid.NewGuid().ToString();
             var logger = loggerFactory.CreateLogger("ApprovalRoutes");
 
-            using var scope = logger.BeginScope(new Dictionary<string, object>
+            try
             {
-                ["CorrelationId"] = correlationId
-            });
+                var escalated = await stateStore.GetEscalatedSubmissionsAsync();
+                var queue = escalated
+                    .Select(state => new EscalationQueueItem(
+                        state.TrackingId,
+                        state.Vendor,
+                        state.InvoiceNumber,
+                        state.Amount,
+                        state.Category,
+                        state.AiRecommendation ?? "Escalate",
+                        state.AiConfidence ?? 0m,
+                        state.CitedRules ?? [],
+                        state.Reason))
+                    .ToArray();
 
-            logger.LogInformation("Returned empty approval queue placeholder with correlation {CorrelationId}.", correlationId);
-            return Results.Ok(Array.Empty<object>());
+                logger.LogInformation("Returned {Count} escalated submissions.", queue.Length);
+                return Results.Ok(queue);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Failed to load escalation queue.");
+                return Results.StatusCode(StatusCodes.Status500InternalServerError);
+            }
         })
         .WithName("GetApprovalQueue");
 
-        app.MapPost("/approvals/{trackingId}/decision", (
+        app.MapPost("/approvals/{trackingId}/decision", async (
             string trackingId,
             ApprovalDecisionRequest request,
+            ApprovalDecisionHandler decisionHandler,
             ILoggerFactory loggerFactory) =>
         {
-            var correlationId = string.IsNullOrWhiteSpace(request.CorrelationId)
-                ? Guid.NewGuid().ToString()
-                : request.CorrelationId.Trim();
-
             var logger = loggerFactory.CreateLogger("ApprovalRoutes");
 
-            using var scope = logger.BeginScope(new Dictionary<string, object>
+            try
             {
-                ["CorrelationId"] = correlationId
-            });
+                var (response, errors) = await decisionHandler.ApplyDecisionAsync(trackingId, request);
+                if (errors.Count > 0)
+                {
+                    logger.LogWarning(
+                        "Approval decision failed for {TrackingId} with {ErrorCount} errors.",
+                        trackingId,
+                        errors.Count);
+                    return errors.Contains("submission was not found.")
+                        ? Results.NotFound(new ValidationErrorResponse(errors))
+                        : Results.BadRequest(new ValidationErrorResponse(errors));
+                }
 
-            var errors = ApprovalDecisionValidator.Validate(request);
-            if (errors.Count > 0)
-            {
-                logger.LogWarning(
-                    "Approval decision validation failed for {TrackingId} with correlation {CorrelationId}.",
-                    trackingId,
-                    correlationId);
-                return Results.BadRequest(new ValidationErrorResponse(errors));
+                using var scope = logger.BeginScope(new Dictionary<string, object>
+                {
+                    ["CorrelationId"] = response!.CorrelationId
+                });
+
+                return Results.Ok(response);
             }
-
-            logger.LogInformation(
-                "Accepted placeholder approval decision {Decision} for {TrackingId} with correlation {CorrelationId}.",
-                request.Decision,
-                trackingId,
-                correlationId);
-
-            return Results.Ok(new ApprovalDecisionResponse(trackingId, "DecisionAccepted", correlationId));
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Failed to apply approval decision for {TrackingId}.", trackingId);
+                return Results.StatusCode(StatusCodes.Status500InternalServerError);
+            }
         })
         .WithName("SubmitApprovalDecision");
 

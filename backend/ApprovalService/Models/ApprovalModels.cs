@@ -8,7 +8,8 @@ public sealed record ApprovalDecisionRequest(
 public sealed record ApprovalDecisionResponse(
     string TrackingId,
     string Status,
-    string CorrelationId);
+    string CorrelationId,
+    string Reason);
 
 public sealed record ValidationErrorResponse(
     IReadOnlyList<string> Errors);
@@ -29,4 +30,8 @@ public sealed record SubmissionState(
     decimal Amount,
     string Category,
     string Status,
-    string Reason);
+    string Reason,
+    string? AiRecommendation = null,
+    decimal? AiConfidence = null,
+    IReadOnlyList<string>? CitedRules = null,
+    string? PolicyVersion = null);

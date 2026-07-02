@@ -5,6 +5,11 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddDaprClient();
 builder.Services.AddSingleton<ISubmissionStateStore, DaprSubmissionStateStore>();
+builder.Services.AddSingleton<IPolicySettingsStore, DaprPolicySettingsStore>();
+builder.Services.AddSingleton<IInvoiceAiProvider, StubInvoiceAiProvider>();
+builder.Services.AddSingleton<PolicyEngine>();
+builder.Services.AddSingleton<ApprovalWorkflowProcessor>();
+builder.Services.AddSingleton<ApprovalDecisionHandler>();
 builder.Services.AddSingleton<SubmissionReceivedHandler>();
 builder.Services.AddOpenApi();
 
@@ -18,6 +23,7 @@ if (app.Environment.IsDevelopment())
 app.UseCloudEvents();
 
 app.MapApprovalRoutes();
+app.MapPolicyRoutes();
 app.MapHealthRoutes();
 app.MapSubscriptionRoutes();
 app.MapSubscribeHandler();

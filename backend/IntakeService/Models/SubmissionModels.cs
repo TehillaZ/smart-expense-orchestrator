@@ -18,7 +18,11 @@ public sealed record SubmissionStatusResponse(
     decimal Amount,
     string Category,
     string Status,
-    string Reason);
+    string Reason,
+    string? AiRecommendation = null,
+    decimal? AiConfidence = null,
+    IReadOnlyList<string>? CitedRules = null,
+    string? PolicyVersion = null);
 
 public sealed record ValidationErrorResponse(
     IReadOnlyList<string> Errors);
