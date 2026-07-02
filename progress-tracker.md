@@ -188,25 +188,64 @@ Add `--verbose` to either command for daily details.
 
 ---
 
-## Current project situation (~45%)
+## Day 5 - 55%
+
+**Focus:** Policy configuration, deterministic approval guard, stub AI recommendations, and human escalation workflow.
+
+**Why this is next:**
+
+- PLAN Steps 9–11 require runtime policy thresholds, AI recommendation with a hard safety guard, and a durable escalation queue.
+- Day 4 stopped at `Processing` with placeholder approval endpoints.
+
+**Completed:**
+
+- Added `PolicySettings` with Dapr-backed runtime configuration and `GET /policy` / `PUT /policy` endpoints.
+- Added deterministic `PolicyEngine` enforcing autonomy ceiling and category hard stops (`AUTONOMY-CEILING`, `HW-02`, `TRAVEL-02`, `SAAS-01`, `MEAL-02`).
+- Added `StubInvoiceAiProvider` so AI recommends but never makes the final decision.
+- Added `ApprovalWorkflowProcessor` to move submissions from `Processing` to `AutoApproved` or `Escalated`.
+- Extended shared submission state with AI recommendation, confidence, cited rules, and policy version.
+- Wired `GET /approvals/queue` to return escalated items from durable Dapr state with an escalation index.
+- Wired `POST /approvals/{trackingId}/decision` to apply human `Approve`, `Reject`, or `RequestInfo` decisions.
+- Routed `/policy` through ApiGateway to ApprovalService.
+- Added unit tests for policy engine, workflow processor, decision handler, and policy settings validation.
+
+**Day 5 verification checklist:**
+
+- `dotnet test backend/ApprovalFlow.sln` passes.
+- A small submission (for example `$100`) auto-approves through the gateway.
+- A large submission (for example `$500`) escalates and appears in `GET /approvals/queue`.
+- Human approve/reject updates status and removes the item from the queue.
+- `PUT /policy` changes the autonomy ceiling without redeploying.
+
+**In progress / blockers:**
+
+- Payment saga, idempotency, notification delivery, audit trail, UI, verification command, and CI are not implemented yet.
+- Intake payload is still minimal (no receipt, vendorKnown, notes), so some policy rules from `policy.md` are not fully exercised yet.
+
+**Outcome:** ApprovalService now makes deterministic auto-approve vs escalate decisions and supports a real human review queue. The next stage is payment saga and idempotency.
+
+---
+
+## Current project situation (~55%)
 
 **What works today:**
 
-- Docker Compose stack: Redis, ApiGateway (`8080`), Intake, Approval, Payment, Notification, and Dapr sidecars.
-- Submit and track submissions through the gateway.
-- Dapr state store for submissions and Dapr pub/sub event from Intake to Approval.
-- Unit tests for validation, submission store behavior, approval handler, and gateway correlation id middleware.
+- End-to-end submit through gateway with Dapr state and pub/sub.
+- Deterministic policy evaluation with stub AI recommendations.
+- Auto-approve for eligible submissions; escalation queue for human review.
+- Human approval decisions persisted in Dapr state.
+- Runtime policy threshold updates via `GET/PUT /policy`.
 
 **What does not exist yet (per PLAN.md):**
 
-- Policy configuration and AI decisioning with hard safety guard
-- Real escalation queue and human approval workflow
-- Payment saga and idempotency
-- Audit trail, dashboard, and structured reporting
-- React submit/track UI
+- Payment saga and compensation
+- Duplicate/idempotency enforcement
+- Notification delivery of final results
+- Audit trail, dashboard, and reporting
+- React submit/track/approvals UI
 - One-command verification and GitHub Actions CI
 
-**Recommended next step (Day 5):** Implement policy loading and deterministic approval logic in ApprovalService after `Processing`, then wire the escalation queue to real Dapr state.
+**Recommended next step (Day 6):** Implement payment saga in PaymentService and basic idempotency for duplicate submissions.
 
 ---
 
@@ -218,7 +257,7 @@ The block below is consumed by `scripts/show-progress.mjs` and `scripts/show_pro
 {
   "project": "ApprovalFlow",
   "repository": "ApprovalFlow-Platform",
-  "summary": "Real progress tracker for the ApprovalFlow assignment. The project is currently at Day 4: Dapr workflow wiring and API Gateway entry point (~45%).",
+  "summary": "Real progress tracker for the ApprovalFlow assignment. The project is currently at Day 5: policy engine, stub AI guard, and escalation queue (~55%).",
   "days": [
     {
       "day": 1,
@@ -310,6 +349,30 @@ The block below is consumed by `scripts/show-progress.mjs` and `scripts/show_pro
         "Implement policy loading and deterministic approval logic in ApprovalService",
         "Back escalation queue with real Dapr state",
         "Start React submit and track UI against the gateway"
+      ]
+    },
+    {
+      "day": 5,
+      "progress": 55,
+      "title": "Policy engine and escalation workflow",
+      "focus": "Runtime policy settings, deterministic approval guard, stub AI, and human review queue",
+      "completed": [
+        "Added Dapr-backed policy settings with GET/PUT /policy endpoints",
+        "Added PolicyEngine with autonomy ceiling and category hard stops",
+        "Added StubInvoiceAiProvider and ApprovalWorkflowProcessor for AutoApproved vs Escalated routing",
+        "Wired escalation queue and human decision endpoints to durable Dapr state",
+        "Extended submission status with AI recommendation, confidence, cited rules, and policy version",
+        "Added gateway routing for /policy",
+        "Added unit tests for policy engine, workflow, decisions, and policy validation"
+      ],
+      "blockers": [
+        "Payment saga, idempotency, notifications, audit, UI, verification command, and CI are not implemented",
+        "Intake payload still lacks receipt/vendorKnown/notes fields for full policy coverage"
+      ],
+      "planned": [
+        "Implement payment saga in PaymentService",
+        "Add duplicate submission/idempotency handling",
+        "Deliver final results through NotificationService"
       ]
     }
   ]
