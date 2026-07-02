@@ -11,6 +11,10 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556F}") = "PaymentService", "PaymentS
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556F}") = "NotificationService", "NotificationService\NotificationService.csproj", "{D31D86EB-5723-4E22-938E-EC016601D214}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556F}") = "IntakeService.Tests", "IntakeService.Tests\IntakeService.Tests.csproj", "{C0A66C61-CDBD-4A0D-9713-0CBEA92C6C56}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556F}") = "ApprovalService.Tests", "ApprovalService.Tests\ApprovalService.Tests.csproj", "{FEF47194-D3EC-42D6-A541-4B39C3AD3DE8}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -33,6 +37,14 @@ Global
 		{D31D86EB-5723-4E22-938E-EC016601D214}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{D31D86EB-5723-4E22-938E-EC016601D214}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{D31D86EB-5723-4E22-938E-EC016601D214}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C0A66C61-CDBD-4A0D-9713-0CBEA92C6C56}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C0A66C61-CDBD-4A0D-9713-0CBEA92C6C56}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C0A66C61-CDBD-4A0D-9713-0CBEA92C6C56}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C0A66C61-CDBD-4A0D-9713-0CBEA92C6C56}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FEF47194-D3EC-42D6-A541-4B39C3AD3DE8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FEF47194-D3EC-42D6-A541-4B39C3AD3DE8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FEF47194-D3EC-42D6-A541-4B39C3AD3DE8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FEF47194-D3EC-42D6-A541-4B39C3AD3DE8}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
