@@ -31,7 +31,7 @@ public sealed class DaprPaymentRequestPublisher : IPaymentRequestPublisher
             state.InvoiceNumber,
             state.Amount,
             state.Category,
-            state.TrackingId);
+            SubmissionIdempotencyKeys.Build(state.Vendor, state.InvoiceNumber, state.Amount));
 
         await daprClient.PublishEventAsync(PubSubName, PaymentRequestedTopic, paymentEvent);
 

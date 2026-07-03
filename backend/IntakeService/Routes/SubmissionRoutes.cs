@@ -35,40 +35,56 @@ public static class SubmissionRoutes
                 return Results.BadRequest(new ValidationErrorResponse(errors));
             }
 
-            var submission = await store.CreateSubmissionAsync(request, correlationId);
+            var creation = await store.CreateSubmissionAsync(request, correlationId);
+            var submission = creation.Submission;
 
-            try
+            if (!creation.IsDuplicate)
             {
-                await daprClient.PublishEventAsync(
-                    PubSubName,
-                    SubmissionReceivedTopic,
-                    new SubmissionReceivedEvent(
+                try
+                {
+                    await daprClient.PublishEventAsync(
+                        PubSubName,
+                        SubmissionReceivedTopic,
+                        new SubmissionReceivedEvent(
+                            submission.TrackingId,
+                            submission.CorrelationId,
+                            submission.Vendor,
+                            submission.InvoiceNumber,
+                            submission.Amount,
+                            submission.Category));
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError(
+                        ex,
+                        "Failed to publish {Topic} event for submission {TrackingId} with correlation {CorrelationId}.",
+                        SubmissionReceivedTopic,
                         submission.TrackingId,
-                        submission.CorrelationId,
-                        submission.Vendor,
-                        submission.InvoiceNumber,
-                        submission.Amount,
-                        submission.Category));
+                        correlationId);
+                }
             }
-            catch (Exception ex)
+            else
             {
-                logger.LogError(
-                    ex,
-                    "Failed to publish {Topic} event for submission {TrackingId} with correlation {CorrelationId}.",
+                logger.LogInformation(
+                    "Skipped publishing {Topic} for duplicate submission {TrackingId}.",
                     SubmissionReceivedTopic,
-                    submission.TrackingId,
-                    correlationId);
+                    submission.TrackingId);
             }
 
             logger.LogInformation(
-                "Accepted submission {TrackingId} for vendor {Vendor} with correlation {CorrelationId}.",
+                creation.IsDuplicate
+                    ? "Returned existing submission {TrackingId} for duplicate vendor {Vendor} with correlation {CorrelationId}."
+                    : "Accepted submission {TrackingId} for vendor {Vendor} with correlation {CorrelationId}.",
                 submission.TrackingId,
                 submission.Vendor,
                 correlationId);
 
             return Results.Accepted(
                 $"/submissions/{submission.TrackingId}",
-                new SubmissionAcceptedResponse(submission.TrackingId, correlationId));
+                new SubmissionAcceptedResponse(
+                    submission.TrackingId,
+                    submission.CorrelationId,
+                    creation.IsDuplicate));
         })
         .WithName("CreateSubmission");
 

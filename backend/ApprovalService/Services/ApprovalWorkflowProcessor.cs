@@ -38,6 +38,15 @@ public sealed class ApprovalWorkflowProcessor
 
         var existing = await stateStore.GetAsync(submissionEvent.TrackingId);
 
+        if (existing is not null && HasCompletedProcessing(existing.Status))
+        {
+            logger.LogInformation(
+                "Skipping duplicate submission.received for {TrackingId} because status is already {Status}.",
+                submissionEvent.TrackingId,
+                existing.Status);
+            return;
+        }
+
         var processingState = existing is null
             ? new SubmissionState(
                 submissionEvent.TrackingId,
@@ -109,5 +118,17 @@ public sealed class ApprovalWorkflowProcessor
             await stateStore.SaveAsync(failedState);
             await stateStore.AddToEscalationQueueAsync(failedState.TrackingId);
         }
+    }
+
+    private static bool HasCompletedProcessing(string status)
+    {
+        return status is ApprovalStatuses.AutoApproved
+            or ApprovalStatuses.Escalated
+            or ApprovalStatuses.HumanApproved
+            or ApprovalStatuses.Rejected
+            or ApprovalStatuses.PaymentPending
+            or ApprovalStatuses.Paid
+            or ApprovalStatuses.PaymentFailed
+            or ApprovalStatuses.Compensated;
     }
 }

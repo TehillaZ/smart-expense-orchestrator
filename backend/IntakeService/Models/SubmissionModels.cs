@@ -8,7 +8,12 @@ public sealed record SubmissionRequest(
 
 public sealed record SubmissionAcceptedResponse(
     string TrackingId,
-    string CorrelationId);
+    string CorrelationId,
+    bool IsDuplicate = false);
+
+public sealed record SubmissionCreationResult(
+    SubmissionStatusResponse Submission,
+    bool IsDuplicate);
 
 public sealed record SubmissionStatusResponse(
     string TrackingId,

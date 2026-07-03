@@ -1,3 +1,4 @@
+using System.Globalization;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using PaymentService.Models;
@@ -11,7 +12,17 @@ public class PaymentSagaProcessorTests
         string trackingId = "tracking-1",
         string invoiceNumber = "INV-1001",
         decimal amount = 100m) =>
-        new(trackingId, "correlation-1", "Acme Corp", invoiceNumber, amount, "meals", trackingId);
+        new(
+            trackingId,
+            "correlation-1",
+            "Acme Corp",
+            invoiceNumber,
+            amount,
+            "meals",
+            BuildIdempotencyKey("Acme Corp", invoiceNumber, amount));
+
+    private static string BuildIdempotencyKey(string vendor, string invoiceNumber, decimal amount) =>
+        $"{vendor.Trim().ToUpperInvariant()}|{invoiceNumber.Trim().ToUpperInvariant()}|{amount.ToString("0.00", CultureInfo.InvariantCulture)}";
 
     private static SubmissionWorkflowState ApprovedState(string trackingId = "tracking-1", string status = ApprovalOutcomeStatuses.AutoApproved) =>
         new(trackingId, "correlation-1", "Acme Corp", "INV-1001", 100m, "meals", status, "Approved.");
@@ -62,7 +73,7 @@ public class PaymentSagaProcessorTests
         var sagaStore = new FakePaymentSagaStore();
         sagaStore.Seed(new PaymentSagaState(
             "tracking-1",
-            "tracking-1",
+            BuildIdempotencyKey("Acme Corp", "INV-1001", 100m),
             "correlation-1",
             100m,
             "INV-1001",
@@ -102,6 +113,36 @@ public class PaymentSagaProcessorTests
         Assert.Equal("Escalated", currentState!.Status);
         Assert.Null(sagaStore.LastSaved);
         Assert.Null(publisher.LastCompleted);
+    }
+
+    [Fact]
+    public async Task ProcessAsync_WithInProgressSagaState_DoesNotProcessAgain()
+    {
+        var sagaStore = new FakePaymentSagaStore();
+        sagaStore.Seed(new PaymentSagaState(
+            "tracking-1",
+            BuildIdempotencyKey("Acme Corp", "INV-1001", 100m),
+            "correlation-1",
+            100m,
+            "INV-1001",
+            PaymentSagaPhases.Reserved,
+            PaymentStatuses.PaymentPending,
+            "Payment in progress.",
+            "res-tracking-1",
+            DateTimeOffset.UtcNow));
+
+        var workflowStore = new FakeSubmissionWorkflowStore();
+        workflowStore.Seed(ApprovedState());
+        var publisher = new FakePaymentOutcomePublisher();
+        var processor = CreateProcessor(sagaStore, workflowStore, publisher);
+
+        await processor.ProcessAsync(SampleEvent());
+
+        var currentState = await workflowStore.GetAsync("tracking-1");
+        Assert.NotNull(currentState);
+        Assert.Equal(ApprovalOutcomeStatuses.AutoApproved, currentState!.Status);
+        Assert.Null(publisher.LastCompleted);
+        Assert.Null(publisher.LastFailed);
     }
 
     private static PaymentSagaProcessor CreateProcessor(
