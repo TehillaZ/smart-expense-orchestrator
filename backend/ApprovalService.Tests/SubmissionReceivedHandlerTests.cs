@@ -14,13 +14,15 @@ public class SubmissionReceivedHandlerTests
     {
         var store = new FakeSubmissionStateStore();
         var settings = new FakePolicySettingsStore();
-        var processor = CreateProcessor(store, settings);
+        var publisher = new FakePaymentRequestPublisher();
+        var processor = CreateProcessor(store, settings, publisher);
 
         await processor.ProcessAsync(SampleEvent());
 
         Assert.NotNull(store.LastSaved);
         Assert.Equal(ApprovalStatuses.AutoApproved, store.LastSaved!.Status);
         Assert.Equal("Approve", store.LastSaved.AiRecommendation);
+        Assert.Single(publisher.PublishedStates);
     }
 
     [Fact]
@@ -28,7 +30,7 @@ public class SubmissionReceivedHandlerTests
     {
         var store = new FakeSubmissionStateStore();
         var settings = new FakePolicySettingsStore();
-        var processor = CreateProcessor(store, settings);
+        var processor = CreateProcessor(store, settings, new FakePaymentRequestPublisher());
 
         await processor.ProcessAsync(SampleEvent(amount: 500m, category: "meals"));
 
@@ -41,7 +43,7 @@ public class SubmissionReceivedHandlerTests
     {
         var store = new FakeSubmissionStateStore();
         var settings = new FakePolicySettingsStore();
-        var processor = CreateProcessor(store, settings);
+        var processor = CreateProcessor(store, settings, new FakePaymentRequestPublisher());
 
         await processor.ProcessAsync(SampleEvent(amount: 1400m, category: "hardware"));
 
@@ -52,13 +54,15 @@ public class SubmissionReceivedHandlerTests
 
     private static ApprovalWorkflowProcessor CreateProcessor(
         FakeSubmissionStateStore store,
-        FakePolicySettingsStore settings)
+        FakePolicySettingsStore settings,
+        FakePaymentRequestPublisher publisher)
     {
         return new ApprovalWorkflowProcessor(
             store,
             settings,
             new StubInvoiceAiProvider(),
             new PolicyEngine(),
+            publisher,
             NullLogger<ApprovalWorkflowProcessor>.Instance);
     }
 }

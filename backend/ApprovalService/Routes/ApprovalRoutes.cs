@@ -40,6 +40,28 @@ public static class ApprovalRoutes
         })
         .WithName("GetApprovalQueue");
 
+        app.MapGet("/submissions/{trackingId}", async (
+            string trackingId,
+            ISubmissionStateStore stateStore,
+            ILoggerFactory loggerFactory) =>
+        {
+            var logger = loggerFactory.CreateLogger("ApprovalRoutes");
+            var state = await stateStore.GetAsync(trackingId);
+
+            if (state is null)
+            {
+                logger.LogWarning("Submission {TrackingId} was not found in approval state.", trackingId);
+                return Results.NotFound(new { message = "Submission was not found." });
+            }
+
+            logger.LogInformation(
+                "Returned approval workflow status {Status} for submission {TrackingId}.",
+                state.Status,
+                trackingId);
+            return Results.Ok(state);
+        })
+        .WithName("GetSubmissionWorkflowStatus");
+
         app.MapPost("/approvals/{trackingId}/decision", async (
             string trackingId,
             ApprovalDecisionRequest request,

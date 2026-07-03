@@ -12,6 +12,9 @@ spec:
       value: "false"
     - name: actorStateStore
       value: "false"
+    # Shared prefix so Intake and Approval read/write the same submission keys.
+    - name: keyPrefix
+      value: "submission"
 scopes:
   - intakeservice
   - approvalservice

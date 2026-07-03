@@ -1,3 +1,4 @@
+using System.Net;
 using Dapr.Client;
 using IntakeService.Models;
 
@@ -53,6 +54,12 @@ public sealed class DaprSubmissionStore : ISubmissionStore
     {
         try
         {
+            var workflowStatus = await TryGetWorkflowStatusFromApprovalServiceAsync(trackingId);
+            if (workflowStatus is not null)
+            {
+                return workflowStatus;
+            }
+
             return await daprClient.GetStateAsync<SubmissionStatusResponse>(StateStoreName, trackingId);
         }
         catch (Exception ex)
@@ -63,6 +70,32 @@ public sealed class DaprSubmissionStore : ISubmissionStore
                 trackingId,
                 StateStoreName);
             throw;
+        }
+    }
+
+    private async Task<SubmissionStatusResponse?> TryGetWorkflowStatusFromApprovalServiceAsync(string trackingId)
+    {
+        try
+        {
+            return await daprClient.InvokeMethodAsync<SubmissionStatusResponse>(
+                HttpMethod.Get,
+                DaprServiceIds.ApprovalService,
+                $"submissions/{trackingId}");
+        }
+        catch (InvocationException ex) when (ex.Response?.StatusCode == HttpStatusCode.NotFound)
+        {
+            logger.LogDebug(
+                "ApprovalService has no workflow state yet for submission {TrackingId}. Falling back to intake state.",
+                trackingId);
+            return null;
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(
+                ex,
+                "Failed to read workflow status for submission {TrackingId} from ApprovalService. Falling back to intake state.",
+                trackingId);
+            return null;
         }
     }
 }

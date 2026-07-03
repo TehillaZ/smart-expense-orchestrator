@@ -5,11 +5,16 @@ namespace ApprovalService.Services;
 public sealed class ApprovalDecisionHandler
 {
     private readonly ISubmissionStateStore stateStore;
+    private readonly IPaymentRequestPublisher paymentRequestPublisher;
     private readonly ILogger<ApprovalDecisionHandler> logger;
 
-    public ApprovalDecisionHandler(ISubmissionStateStore stateStore, ILogger<ApprovalDecisionHandler> logger)
+    public ApprovalDecisionHandler(
+        ISubmissionStateStore stateStore,
+        IPaymentRequestPublisher paymentRequestPublisher,
+        ILogger<ApprovalDecisionHandler> logger)
     {
         this.stateStore = stateStore;
+        this.paymentRequestPublisher = paymentRequestPublisher;
         this.logger = logger;
     }
 
@@ -58,6 +63,11 @@ public sealed class ApprovalDecisionHandler
             request.Decision,
             trackingId,
             status);
+
+        if (string.Equals(status, ApprovalStatuses.HumanApproved, StringComparison.Ordinal))
+        {
+            await paymentRequestPublisher.PublishAsync(updated);
+        }
 
         return (new ApprovalDecisionResponse(trackingId, status, correlationId, reason), []);
     }
