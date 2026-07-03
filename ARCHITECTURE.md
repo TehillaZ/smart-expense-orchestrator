@@ -539,19 +539,19 @@ No double payment is proven by storing a payment idempotency key and returning t
 
 ### Context
 
-The system handles multiple actions as recieve expenses requests validate and approve the requests processing payments
+The system handles multiple actions as recieve expenses requests validate approve the requests and processing payments
 and notify the users about them so it become difficult to manage all it in one unit
 
 ### Decision
 
-Spliting the system into four services:
+Splitting the system into four services:
 - Intake Service       - responsable for getting and validate the expenses requests.
 - Approval Service     - check the policy and decide which request auto approved or which need to escalate.
-- Paymant Service      - responsible for safetly payment process and using a saga-based flow.
+- Paymant Service      - responsable for safetly payment process and using a saga-based flow.
 - Notification Service - update users about their payment status.
 
 ### Consequences
-This separation improves modularity, maintainability, and scalability, Each service has his own failure modes.
+This separation improves modularity, maintainability, and scalability, Each service has his own responsibilities and failure modes.
 However, this design distributed system complexity, including inter-service communication, and the need for reliable messaging between services.
 
 ## ADR-002: Dapr Communication
@@ -580,10 +580,10 @@ However, it adds a dependency on Dapr runtime and its configuration model.
 
 ### Context
 the payment process include multiple steps and cannot be handled safetly as a single transaction
-because they are distributed across services and may fail independently this create a risk of partial execution 
+because they are distributed across services and may fail independently this create a risk of half job
 
 ### Decision
-implementing a saga pattern to manage the payment workflow with explicit compensation logic for failure cases
+implementing a saga pattern to manage the payment workflow with a logic for failure cases
 
 The saga includes the following steps:
 1. Validate idempotency key to prevent duplicate execution.
@@ -594,15 +594,15 @@ The saga includes the following steps:
 
 ### Consequences
 This approach ensures consistency across distributed services without requiring distributed transactions
-The main trade-off is increased system complexity, including the need to design and maintain compensation logic and ensure all steps are idempotent and recoverable.
+The main trade-off is increased system complexity, including the need to design and maintain logic and ensure all steps are idempotent and recoverable.
 
 ## ADR-004: AI Safety Guard
 ### Context
-The system uses a Large Language Model (LLM) to assist in classification and decision-making for expense processing
+The system uses a LLM to assist in classification and decision-making for expense processing
 However , Relying on the LLM for final approval decisions introduces risks such as non-deterministic outputs or lack of reproducibility.
 
 ### Decision
-Enforcing a deterministic decision layer in code that is responsible for all final approval decisions.
+Enforcing a deterministic decision layer in code that is responsable for all final approval decisions.
 The LLM is used only as a supporting component that provides recommendations, classification hints, or confidence signals, but it never directly authorizes or rejects financial transactions.
 
 The final decision is determined by:
@@ -613,7 +613,7 @@ The final decision is determined by:
 - system-defined validation logic
 
 ### Consequences
-This design significantly improves safety, auditability, and regulatory compliance, as all decisions can be traced back to explicit deterministic rules.
+This design significantly improves safety, auditability, and regulatory compliance, as all decisions can be traced back to deterministic rules.
 The trade-off is reduced flexibility from the LLM and increased reliance on manually maintained business rules, which may require updates when policies change.
 
 ## ADR-005: Policy Configuration
@@ -635,5 +635,5 @@ This allows policy updates without modifying application code.
 
 ### Consequences
 This approach improves flexibility and makes the system easier to maintain and adapt to changing business requirements.
-However, it introduces risks related to configuration errors, such as invalid thresholds or inconsistent rule definitions. To mitigate this, configurations must be validated at startup and during deployment.
+However, it introduces risks related to configuration errors, such as invalid thresholds. To mitigate this, configurations must be validated at startup and during deployment.
 
