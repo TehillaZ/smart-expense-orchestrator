@@ -10,6 +10,7 @@ public sealed class ApprovalWorkflowProcessor
     private readonly IPolicySettingsStore policySettingsStore;
     private readonly IInvoiceAiProvider aiProvider;
     private readonly PolicyEngine policyEngine;
+    private readonly IPaymentRequestPublisher paymentRequestPublisher;
     private readonly ILogger<ApprovalWorkflowProcessor> logger;
 
     public ApprovalWorkflowProcessor(
@@ -17,12 +18,14 @@ public sealed class ApprovalWorkflowProcessor
         IPolicySettingsStore policySettingsStore,
         IInvoiceAiProvider aiProvider,
         PolicyEngine policyEngine,
+        IPaymentRequestPublisher paymentRequestPublisher,
         ILogger<ApprovalWorkflowProcessor> logger)
     {
         this.stateStore = stateStore;
         this.policySettingsStore = policySettingsStore;
         this.aiProvider = aiProvider;
         this.policyEngine = policyEngine;
+        this.paymentRequestPublisher = paymentRequestPublisher;
         this.logger = logger;
     }
 
@@ -81,6 +84,11 @@ public sealed class ApprovalWorkflowProcessor
                 submissionEvent.TrackingId,
                 finalState.Status,
                 submissionEvent.CorrelationId);
+
+            if (string.Equals(finalState.Status, ApprovalStatuses.AutoApproved, StringComparison.Ordinal))
+            {
+                await paymentRequestPublisher.PublishAsync(finalState);
+            }
         }
         catch (Exception ex)
         {

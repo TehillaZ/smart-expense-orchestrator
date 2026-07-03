@@ -11,6 +11,7 @@ builder.Services.AddSingleton<PolicyEngine>();
 builder.Services.AddSingleton<ApprovalWorkflowProcessor>();
 builder.Services.AddSingleton<ApprovalDecisionHandler>();
 builder.Services.AddSingleton<SubmissionReceivedHandler>();
+builder.Services.AddSingleton<IPaymentRequestPublisher, DaprPaymentRequestPublisher>();
 builder.Services.AddOpenApi();
 
 var app = builder.Build();

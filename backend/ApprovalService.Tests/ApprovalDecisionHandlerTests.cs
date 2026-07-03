@@ -12,7 +12,8 @@ public class ApprovalDecisionHandlerTests
         var store = new FakeSubmissionStateStore();
         store.Seed(CreateEscalatedState());
         await store.AddToEscalationQueueAsync("tracking-1");
-        var handler = new ApprovalDecisionHandler(store, NullLogger<ApprovalDecisionHandler>.Instance);
+        var publisher = new FakePaymentRequestPublisher();
+        var handler = new ApprovalDecisionHandler(store, publisher, NullLogger<ApprovalDecisionHandler>.Instance);
 
         var (response, errors) = await handler.ApplyDecisionAsync(
             "tracking-1",
@@ -22,13 +23,14 @@ public class ApprovalDecisionHandlerTests
         Assert.NotNull(response);
         Assert.Equal(ApprovalStatuses.HumanApproved, response!.Status);
         Assert.Empty(await store.GetEscalatedSubmissionsAsync());
+        Assert.Single(publisher.PublishedStates);
     }
 
     [Fact]
     public async Task ApplyDecisionAsync_WithMissingSubmission_ReturnsNotFoundError()
     {
         var store = new FakeSubmissionStateStore();
-        var handler = new ApprovalDecisionHandler(store, NullLogger<ApprovalDecisionHandler>.Instance);
+        var handler = new ApprovalDecisionHandler(store, new FakePaymentRequestPublisher(), NullLogger<ApprovalDecisionHandler>.Instance);
 
         var (response, errors) = await handler.ApplyDecisionAsync(
             "missing-id",
