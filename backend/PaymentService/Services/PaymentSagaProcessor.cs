@@ -37,12 +37,21 @@ public sealed class PaymentSagaProcessor
             : paymentEvent.IdempotencyKey.Trim();
 
         var existingSaga = await sagaStore.GetAsync(idempotencyKey);
-        if (existingSaga is { IsTerminal: true })
+        if (existingSaga is not null)
         {
+            if (existingSaga.IsTerminal)
+            {
+                logger.LogInformation(
+                    "Payment idempotency key {IdempotencyKey} already reached terminal status {Status}. Skipping duplicate processing.",
+                    idempotencyKey,
+                    existingSaga.Status);
+                return;
+            }
+
             logger.LogInformation(
-                "Payment idempotency key {IdempotencyKey} already reached terminal status {Status}. Skipping duplicate processing.",
+                "Payment idempotency key {IdempotencyKey} is already in progress at phase {Phase}. Skipping duplicate processing.",
                 idempotencyKey,
-                existingSaga.Status);
+                existingSaga.Phase);
             return;
         }
 

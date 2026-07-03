@@ -9,9 +9,21 @@ public sealed class InMemorySubmissionStore : ISubmissionStore
     private const string InitialReason = "Invoice received and is pending analysis.";
 
     private readonly ConcurrentDictionary<string, SubmissionStatusResponse> submissions = new();
+    private readonly ConcurrentDictionary<string, string> idempotencyIndex = new(StringComparer.Ordinal);
 
-    public Task<SubmissionStatusResponse> CreateSubmissionAsync(SubmissionRequest request, string correlationId)
+    public Task<SubmissionCreationResult> CreateSubmissionAsync(SubmissionRequest request, string correlationId)
     {
+        var idempotencyKey = SubmissionIdempotencyKeys.Build(
+            request.Vendor!,
+            request.InvoiceNumber!,
+            request.Amount);
+
+        if (idempotencyIndex.TryGetValue(idempotencyKey, out var existingTrackingId)
+            && submissions.TryGetValue(existingTrackingId, out var existingSubmission))
+        {
+            return Task.FromResult(new SubmissionCreationResult(existingSubmission, true));
+        }
+
         var trackingId = Guid.NewGuid().ToString();
 
         var submission = new SubmissionStatusResponse(
@@ -25,7 +37,9 @@ public sealed class InMemorySubmissionStore : ISubmissionStore
             InitialReason);
 
         submissions[trackingId] = submission;
-        return Task.FromResult(submission);
+        idempotencyIndex[idempotencyKey] = trackingId;
+
+        return Task.FromResult(new SubmissionCreationResult(submission, false));
     }
 
     public Task<SubmissionStatusResponse?> GetSubmissionAsync(string trackingId)

@@ -52,6 +52,36 @@ public class SubmissionReceivedHandlerTests
         Assert.Contains("HW-02", store.LastSaved.Reason, StringComparison.OrdinalIgnoreCase);
     }
 
+    [Fact]
+    public async Task HandleAsync_WithAlreadyAutoApprovedSubmission_SkipsReprocessingAndRepublish()
+    {
+        var store = new FakeSubmissionStateStore();
+        store.Seed(new SubmissionState(
+            "tracking-1",
+            "correlation-1",
+            "Acme Corp",
+            "INV-1001",
+            100m,
+            "Office Supplies",
+            ApprovalStatuses.AutoApproved,
+            "Auto approved.",
+            "Approve",
+            0.95m,
+            ["MEAL-01"],
+            "v1"));
+        var settings = new FakePolicySettingsStore();
+        var publisher = new FakePaymentRequestPublisher();
+        var processor = CreateProcessor(store, settings, publisher);
+
+        await processor.ProcessAsync(SampleEvent());
+
+        var current = await store.GetAsync("tracking-1");
+        Assert.NotNull(current);
+        Assert.Equal(ApprovalStatuses.AutoApproved, current!.Status);
+        Assert.Null(store.LastSaved);
+        Assert.Empty(publisher.PublishedStates);
+    }
+
     private static ApprovalWorkflowProcessor CreateProcessor(
         FakeSubmissionStateStore store,
         FakePolicySettingsStore settings,
