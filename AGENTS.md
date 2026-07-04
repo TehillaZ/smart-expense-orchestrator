@@ -31,7 +31,23 @@
 - Include robust error handling (Try-Catch) and structured logging across all endpoints and event subscribers.
 - **CRITICAL GITHUB RULE:** Do NOT automatically perform any Git commit or push to GitHub. You must explicitly ask the user for permission and receive approval before staging, committing, or uploading any code.
 
-## 7. Industry Production Standards
+## 7. Git & Commit Conventions (STRICT)
+- Always use the **Conventional Commits** standard in lowercase.
+- Formats allowed: 
+  - `feat: <description>` (for new features)
+  - `fix: <description>` (for bug fixes)
+  - `test: <description>` (for writing tests)
+  - `docs: <description>` (for documentation)
+  - `chore: <description>` (for config/tasks)
+- **CRITICAL PROHIBITIONS:**
+  - NEVER use capitalized prefixes with slashes (e.g., DO NOT use `Feat/` or `Test/`).
+  - NEVER include day trackers or progress milestones in the commit message (e.g., DO NOT use `IMPLEMENTDAY5` or `day4`).
+  - Keep messages clean, imperative, and concise.
+
+## Execution Workflow
+- Never perform git add, git commit, git push, or create pull requests unless the user explicitly requests it.
+
+## 8. Industry Production Standards
 - **Security:** NEVER hardcode secrets, API keys, or passwords. Always use Environment Variables or configuration files (`appsettings.json`).
 - **Naming Conventions:** Follow strict language standards (PascalCase for C# methods/classes, camelCase for variables; PascalCase for React components and file names).
 - **Asynchronous Code:** All I/O bound operations, database queries, and network calls in .NET must use `async/await` pattern.
