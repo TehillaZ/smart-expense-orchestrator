@@ -25,6 +25,10 @@ public class RequiredJourneyTests
         Assert.Equal(1, harness.PaymentPublishCount);
         Assert.NotNull(harness.LastCompleted);
         Assert.Null(harness.LastFailed);
+
+        var notification = await harness.GetNotificationAsync(creation.Submission.TrackingId);
+        Assert.NotNull(notification);
+        Assert.Equal(PaymentStatuses.Paid, notification!.Status);
     }
 
     [Fact]
@@ -93,5 +97,9 @@ public class RequiredJourneyTests
         Assert.Null(harness.LastCompleted);
         Assert.NotNull(harness.LastFailed);
         Assert.Equal(PaymentStatuses.Compensated, harness.LastFailed!.Status);
+
+        var notification = await harness.GetNotificationAsync(trackingId);
+        Assert.NotNull(notification);
+        Assert.Equal(PaymentStatuses.Compensated, notification!.Status);
     }
 }

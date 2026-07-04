@@ -24,6 +24,7 @@
     <ProjectReference Include="..\ApprovalService\ApprovalService.csproj" />
     <ProjectReference Include="..\IntakeService\IntakeService.csproj" />
     <ProjectReference Include="..\PaymentService\PaymentService.csproj" />
+    <ProjectReference Include="..\NotificationService\NotificationService.csproj" />
   </ItemGroup>
 
 </Project>
