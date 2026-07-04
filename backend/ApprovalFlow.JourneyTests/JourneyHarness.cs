@@ -33,7 +33,6 @@ internal sealed class JourneyHarness
         JourneyPaymentRequestPublisher paymentPublisher,
         JourneyPaymentOutcomePublisher outcomePublisher,
         InMemoryNotificationStore notificationStore)
-        JourneyPaymentOutcomePublisher outcomePublisher)
     {
         this.intakeStore = intakeStore;
         this.approvalStore = approvalStore;
