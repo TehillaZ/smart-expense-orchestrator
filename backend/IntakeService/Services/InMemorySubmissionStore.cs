@@ -10,6 +10,8 @@ public sealed class InMemorySubmissionStore : ISubmissionStore
 
     private readonly ConcurrentDictionary<string, SubmissionStatusResponse> submissions = new();
     private readonly ConcurrentDictionary<string, string> idempotencyIndex = new(StringComparer.Ordinal);
+    private readonly List<string> trackingRegistry = [];
+    private readonly Lock registryLock = new();
 
     public Task<SubmissionCreationResult> CreateSubmissionAsync(SubmissionRequest request, string correlationId)
     {
@@ -38,6 +40,7 @@ public sealed class InMemorySubmissionStore : ISubmissionStore
 
         submissions[trackingId] = submission;
         idempotencyIndex[idempotencyKey] = trackingId;
+        RegisterTrackingId(trackingId);
 
         return Task.FromResult(new SubmissionCreationResult(submission, false));
     }
@@ -45,5 +48,30 @@ public sealed class InMemorySubmissionStore : ISubmissionStore
     public Task<SubmissionStatusResponse?> GetSubmissionAsync(string trackingId)
     {
         return Task.FromResult(submissions.GetValueOrDefault(trackingId));
+    }
+
+    public Task<IReadOnlyList<SubmissionStatusResponse>> ListSubmissionsAsync()
+    {
+        lock (registryLock)
+        {
+            var results = trackingRegistry
+                .Select(id => submissions.GetValueOrDefault(id))
+                .Where(submission => submission is not null)
+                .Cast<SubmissionStatusResponse>()
+                .ToList();
+
+            return Task.FromResult((IReadOnlyList<SubmissionStatusResponse>)results);
+        }
+    }
+
+    private void RegisterTrackingId(string trackingId)
+    {
+        lock (registryLock)
+        {
+            if (!trackingRegistry.Contains(trackingId, StringComparer.Ordinal))
+            {
+                trackingRegistry.Insert(0, trackingId);
+            }
+        }
     }
 }

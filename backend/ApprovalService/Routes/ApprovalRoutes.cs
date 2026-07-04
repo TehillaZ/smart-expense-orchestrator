@@ -46,19 +46,28 @@ public static class ApprovalRoutes
             ILoggerFactory loggerFactory) =>
         {
             var logger = loggerFactory.CreateLogger("ApprovalRoutes");
-            var state = await stateStore.GetAsync(trackingId);
 
-            if (state is null)
+            try
             {
-                logger.LogWarning("Submission {TrackingId} was not found in approval state.", trackingId);
-                return Results.NotFound(new { message = "Submission was not found." });
-            }
+                var state = await stateStore.GetAsync(trackingId);
 
-            logger.LogInformation(
-                "Returned approval workflow status {Status} for submission {TrackingId}.",
-                state.Status,
-                trackingId);
-            return Results.Ok(state);
+                if (state is null)
+                {
+                    logger.LogWarning("Submission {TrackingId} was not found in approval state.", trackingId);
+                    return Results.NotFound(new { message = "Submission was not found." });
+                }
+
+                logger.LogInformation(
+                    "Returned approval workflow status {Status} for submission {TrackingId}.",
+                    state.Status,
+                    trackingId);
+                return Results.Ok(state);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Failed to read approval workflow status for {TrackingId}.", trackingId);
+                return Results.StatusCode(StatusCodes.Status500InternalServerError);
+            }
         })
         .WithName("GetSubmissionWorkflowStatus");
 

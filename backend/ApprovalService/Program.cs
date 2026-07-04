@@ -24,6 +24,7 @@ if (app.Environment.IsDevelopment())
 app.UseCloudEvents();
 
 app.MapApprovalRoutes();
+app.MapInternalApprovalRoutes();
 app.MapPolicyRoutes();
 app.MapHealthRoutes();
 app.MapSubscriptionRoutes();

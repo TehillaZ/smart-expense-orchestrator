@@ -33,11 +33,37 @@ public sealed class DaprPaymentRequestPublisher : IPaymentRequestPublisher
             state.Category,
             SubmissionIdempotencyKeys.Build(state.Vendor, state.InvoiceNumber, state.Amount));
 
-        await daprClient.PublishEventAsync(PubSubName, PaymentRequestedTopic, paymentEvent);
+        try
+        {
+            await daprClient.PublishEventAsync(PubSubName, PaymentRequestedTopic, paymentEvent);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(
+                ex,
+                "Failed to publish {Topic} for submission {TrackingId}.",
+                PaymentRequestedTopic,
+                state.TrackingId);
+        }
+
+        try
+        {
+            await daprClient.InvokeMethodAsync(
+                HttpMethod.Post,
+                DaprServiceIds.PaymentService,
+                "internal/payments/process",
+                paymentEvent);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(
+                ex,
+                "Failed to invoke direct payment processing for submission {TrackingId}.",
+                state.TrackingId);
+        }
 
         logger.LogInformation(
-            "Published {Topic} for submission {TrackingId} with correlation {CorrelationId}.",
-            PaymentRequestedTopic,
+            "Requested payment processing for submission {TrackingId} with correlation {CorrelationId}.",
             state.TrackingId,
             state.CorrelationId);
     }
