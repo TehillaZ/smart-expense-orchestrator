@@ -24,6 +24,7 @@ if (app.Environment.IsDevelopment())
 app.UseCloudEvents();
 
 app.MapHealthRoutes();
+app.MapInternalPaymentRoutes();
 app.MapSubscriptionRoutes();
 app.MapSubscribeHandler();
 

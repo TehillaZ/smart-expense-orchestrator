@@ -77,4 +77,28 @@ public class InMemorySubmissionStoreTests
 
         Assert.Null(fetched);
     }
+
+    [Fact]
+    public async Task ListSubmissionsAsync_ReturnsNewestFirstWithoutDuplicates()
+    {
+        var store = new InMemorySubmissionStore();
+
+        var first = await store.CreateSubmissionAsync(
+            new SubmissionRequest("Acme Corp", "INV-2001", 100m, "Travel"),
+            "correlation-1");
+        var second = await store.CreateSubmissionAsync(
+            new SubmissionRequest("Beta LLC", "INV-2002", 200m, "Software"),
+            "correlation-2");
+        var duplicate = await store.CreateSubmissionAsync(
+            new SubmissionRequest("Acme Corp", "INV-2001", 100m, "Travel"),
+            "correlation-3");
+
+        Assert.True(duplicate.IsDuplicate);
+
+        var submissions = await store.ListSubmissionsAsync();
+
+        Assert.Equal(2, submissions.Count);
+        Assert.Equal(second.Submission.TrackingId, submissions[0].TrackingId);
+        Assert.Equal(first.Submission.TrackingId, submissions[1].TrackingId);
+    }
 }

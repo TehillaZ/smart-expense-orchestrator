@@ -20,6 +20,7 @@ app.UseCloudEvents();
 
 app.MapHealthRoutes();
 app.MapNotificationRoutes();
+app.MapInternalNotificationRoutes();
 app.MapSubscriptionRoutes();
 app.MapSubscribeHandler();
 

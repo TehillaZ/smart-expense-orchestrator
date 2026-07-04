@@ -1,4 +1,4 @@
-export const SUBMISSION_STATUSES = ['Approved', 'Rejected', 'Pending'] as const
+export const SUBMISSION_STATUSES = ['Approved', 'Rejected', 'Pending', 'Escalated'] as const
 
 export type SubmissionStatus = (typeof SUBMISSION_STATUSES)[number]
 
@@ -20,6 +20,7 @@ export type SubmissionRecord = {
   status: SubmissionStatus
   invoiceNumber: string
   category: ExpenseCategory
+  backendStatus?: string
 }
 
 export type SubmitExpenseFormData = {

@@ -1,3 +1,4 @@
+using System.Text.Json;
 using ApprovalService.Models;
 using Dapr.Client;
 
@@ -9,15 +10,39 @@ public sealed class DaprSubmissionStateStore : ISubmissionStateStore
     private const string EscalationQueueKey = "escalation-queue-index";
 
     private readonly DaprClient daprClient;
+    private readonly ILogger<DaprSubmissionStateStore> logger;
 
-    public DaprSubmissionStateStore(DaprClient daprClient)
+    public DaprSubmissionStateStore(DaprClient daprClient, ILogger<DaprSubmissionStateStore> logger)
     {
         this.daprClient = daprClient;
+        this.logger = logger;
     }
 
     public async Task<SubmissionState?> GetAsync(string trackingId)
     {
-        return await daprClient.GetStateAsync<SubmissionState>(StateStoreName, trackingId);
+        try
+        {
+            var state = await daprClient.GetStateAsync<SubmissionState>(StateStoreName, trackingId);
+            if (state is not null)
+            {
+                return state;
+            }
+
+            return await TryReadCompatibleStateAsync(trackingId);
+        }
+        catch (JsonException ex)
+        {
+            logger.LogWarning(
+                ex,
+                "Primary deserialization failed for submission {TrackingId}. Attempting compatible read.",
+                trackingId);
+            return await TryReadCompatibleStateAsync(trackingId);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Failed to read submission {TrackingId} from state store.", trackingId);
+            throw;
+        }
     }
 
     public Task SaveAsync(SubmissionState state)
@@ -60,6 +85,28 @@ public sealed class DaprSubmissionStateStore : ISubmissionStateStore
         if (index.Remove(trackingId))
         {
             await SaveQueueIndexAsync(index);
+        }
+    }
+
+    private async Task<SubmissionState?> TryReadCompatibleStateAsync(string trackingId)
+    {
+        try
+        {
+            var rawState = await daprClient.GetStateAsync<JsonElement>(StateStoreName, trackingId);
+            if (rawState.ValueKind is JsonValueKind.Undefined or JsonValueKind.Null)
+            {
+                return null;
+            }
+
+            return JsonSerializer.Deserialize<SubmissionState>(rawState.GetRawText());
+        }
+        catch (JsonException ex)
+        {
+            logger.LogWarning(
+                ex,
+                "Compatible deserialization failed for submission {TrackingId}. Treating as missing approval state.",
+                trackingId);
+            return null;
         }
     }
 

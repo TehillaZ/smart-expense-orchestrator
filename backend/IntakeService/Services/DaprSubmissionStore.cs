@@ -8,6 +8,7 @@ public sealed class DaprSubmissionStore : ISubmissionStore
 {
     private const string StateStoreName = "approval-state";
     private const string IndexKeyPrefix = "submission-index";
+    private const string RegistryKey = "submissions:registry";
     private const string InitialStatus = "Received";
     private const string InitialReason = "Invoice received and is pending analysis.";
 
@@ -65,6 +66,7 @@ public sealed class DaprSubmissionStore : ISubmissionStore
         {
             await daprClient.SaveStateAsync(StateStoreName, trackingId, submission);
             await daprClient.SaveStateAsync(StateStoreName, BuildIndexKey(idempotencyKey), trackingId);
+            await RegisterTrackingIdAsync(trackingId);
         }
         catch (Exception ex)
         {
@@ -79,17 +81,57 @@ public sealed class DaprSubmissionStore : ISubmissionStore
         return new SubmissionCreationResult(submission, false);
     }
 
+    public async Task<IReadOnlyList<SubmissionStatusResponse>> ListSubmissionsAsync()
+    {
+        try
+        {
+            var registry = await daprClient.GetStateAsync<List<string>>(StateStoreName, RegistryKey)
+                ?? [];
+
+            var submissions = new List<SubmissionStatusResponse>(registry.Count);
+
+            foreach (var trackingId in registry)
+            {
+                var submission = await GetSubmissionAsync(trackingId);
+                if (submission is not null)
+                {
+                    submissions.Add(submission);
+                }
+            }
+
+            return submissions;
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(
+                ex,
+                "Failed to list submissions from the {StateStoreName} state store.",
+                StateStoreName);
+            throw;
+        }
+    }
+
     public async Task<SubmissionStatusResponse?> GetSubmissionAsync(string trackingId)
     {
         try
         {
+            var sharedState = await daprClient.GetStateAsync<SubmissionStatusResponse>(
+                StateStoreName,
+                trackingId);
+
+            if (sharedState is not null
+                && !string.Equals(sharedState.Status, InitialStatus, StringComparison.Ordinal))
+            {
+                return sharedState;
+            }
+
             var workflowStatus = await TryGetWorkflowStatusFromApprovalServiceAsync(trackingId);
             if (workflowStatus is not null)
             {
                 return workflowStatus;
             }
 
-            return await daprClient.GetStateAsync<SubmissionStatusResponse>(StateStoreName, trackingId);
+            return sharedState;
         }
         catch (Exception ex)
         {
@@ -126,6 +168,20 @@ public sealed class DaprSubmissionStore : ISubmissionStore
                 trackingId);
             return null;
         }
+    }
+
+    private async Task RegisterTrackingIdAsync(string trackingId)
+    {
+        var registry = await daprClient.GetStateAsync<List<string>>(StateStoreName, RegistryKey)
+            ?? [];
+
+        if (registry.Contains(trackingId, StringComparer.Ordinal))
+        {
+            return;
+        }
+
+        registry.Insert(0, trackingId);
+        await daprClient.SaveStateAsync(StateStoreName, RegistryKey, registry);
     }
 
     private static string BuildIndexKey(string idempotencyKey) => $"{IndexKeyPrefix}:{idempotencyKey}";

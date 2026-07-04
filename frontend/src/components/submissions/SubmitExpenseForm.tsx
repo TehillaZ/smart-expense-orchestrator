@@ -20,7 +20,7 @@ type SubmitExpenseFormProps = {
     invoiceNumber: string
     amount: number
     category: ExpenseCategory
-  }) => void
+  }) => Promise<void>
 }
 
 function validateForm(data: SubmitExpenseFormData): FormErrors {
@@ -49,6 +49,7 @@ function validateForm(data: SubmitExpenseFormData): FormErrors {
 export function SubmitExpenseForm({ onSubmit }: SubmitExpenseFormProps) {
   const [form, setForm] = useState<SubmitExpenseFormData>(EMPTY_FORM)
   const [errors, setErrors] = useState<FormErrors>({})
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   function updateField<K extends keyof SubmitExpenseFormData>(
     field: K,
@@ -58,7 +59,7 @@ export function SubmitExpenseForm({ onSubmit }: SubmitExpenseFormProps) {
     setErrors((current) => ({ ...current, [field]: undefined }))
   }
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
 
     const validationErrors = validateForm(form)
@@ -67,15 +68,23 @@ export function SubmitExpenseForm({ onSubmit }: SubmitExpenseFormProps) {
       return
     }
 
-    onSubmit({
-      vendorName: form.vendorName.trim(),
-      invoiceNumber: form.invoiceNumber.trim(),
-      amount: Number.parseFloat(form.amount),
-      category: form.category as ExpenseCategory,
-    })
+    setIsSubmitting(true)
 
-    setForm(EMPTY_FORM)
-    setErrors({})
+    try {
+      await onSubmit({
+        vendorName: form.vendorName.trim(),
+        invoiceNumber: form.invoiceNumber.trim(),
+        amount: Number.parseFloat(form.amount),
+        category: form.category as ExpenseCategory,
+      })
+
+      setForm(EMPTY_FORM)
+      setErrors({})
+    } catch {
+      // Parent shows the error toast; keep form values for retry.
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   return (
@@ -168,9 +177,10 @@ export function SubmitExpenseForm({ onSubmit }: SubmitExpenseFormProps) {
 
         <button
           type="submit"
-          className="w-full rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-300 focus:ring-offset-2"
+          disabled={isSubmitting}
+          className="w-full rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-300 focus:ring-offset-2 disabled:cursor-not-allowed disabled:bg-blue-400"
         >
-          Submit Expense
+          {isSubmitting ? 'Submitting…' : 'Submit Expense'}
         </button>
       </form>
     </section>

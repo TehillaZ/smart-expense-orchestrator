@@ -40,18 +40,20 @@ public static class SubmissionRoutes
 
             if (!creation.IsDuplicate)
             {
+                var submissionEvent = new SubmissionReceivedEvent(
+                    submission.TrackingId,
+                    submission.CorrelationId,
+                    submission.Vendor,
+                    submission.InvoiceNumber,
+                    submission.Amount,
+                    submission.Category);
+
                 try
                 {
                     await daprClient.PublishEventAsync(
                         PubSubName,
                         SubmissionReceivedTopic,
-                        new SubmissionReceivedEvent(
-                            submission.TrackingId,
-                            submission.CorrelationId,
-                            submission.Vendor,
-                            submission.InvoiceNumber,
-                            submission.Amount,
-                            submission.Category));
+                        submissionEvent);
                 }
                 catch (Exception ex)
                 {
@@ -59,6 +61,23 @@ public static class SubmissionRoutes
                         ex,
                         "Failed to publish {Topic} event for submission {TrackingId} with correlation {CorrelationId}.",
                         SubmissionReceivedTopic,
+                        submission.TrackingId,
+                        correlationId);
+                }
+
+                try
+                {
+                    await daprClient.InvokeMethodAsync(
+                        HttpMethod.Post,
+                        DaprServiceIds.ApprovalService,
+                        "internal/submissions/process",
+                        submissionEvent);
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError(
+                        ex,
+                        "Failed to invoke direct approval processing for submission {TrackingId} with correlation {CorrelationId}.",
                         submission.TrackingId,
                         correlationId);
                 }
@@ -87,6 +106,26 @@ public static class SubmissionRoutes
                     creation.IsDuplicate));
         })
         .WithName("CreateSubmission");
+
+        app.MapGet("/submissions", async (
+            ISubmissionStore store,
+            ILoggerFactory loggerFactory) =>
+        {
+            var logger = loggerFactory.CreateLogger("SubmissionRoutes");
+
+            try
+            {
+                var submissions = await store.ListSubmissionsAsync();
+                logger.LogInformation("Returned {Count} submissions from persistent state.", submissions.Count);
+                return Results.Ok(submissions);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Failed to list submissions from persistent state.");
+                return Results.StatusCode(StatusCodes.Status500InternalServerError);
+            }
+        })
+        .WithName("ListSubmissions");
 
         app.MapGet("/submissions/{trackingId}", async (
             string trackingId,
