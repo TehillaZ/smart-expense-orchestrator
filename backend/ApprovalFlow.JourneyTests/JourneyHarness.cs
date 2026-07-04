@@ -4,10 +4,14 @@ using IntakeService.Models;
 using IntakeService.Services;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
+using NotificationService.Models;
+using NotificationService.Services;
 using PaymentService.Models;
 using PaymentService.Services;
 using ApprovalSubmissionReceivedEvent = ApprovalService.Models.SubmissionReceivedEvent;
 using PaymentRequestedEvent = PaymentService.Models.PaymentRequestedEvent;
+using PaymentCompletedEvent = PaymentService.Models.PaymentCompletedEvent;
+using PaymentFailedEvent = PaymentService.Models.PaymentFailedEvent;
 
 namespace ApprovalFlow.JourneyTests;
 
@@ -19,6 +23,7 @@ internal sealed class JourneyHarness
     private readonly ApprovalDecisionHandler decisionHandler;
     private readonly JourneyPaymentRequestPublisher paymentPublisher;
     private readonly JourneyPaymentOutcomePublisher outcomePublisher;
+    private readonly InMemoryNotificationStore notificationStore;
 
     private JourneyHarness(
         InMemorySubmissionStore intakeStore,
@@ -26,6 +31,8 @@ internal sealed class JourneyHarness
         ApprovalWorkflowProcessor approvalProcessor,
         ApprovalDecisionHandler decisionHandler,
         JourneyPaymentRequestPublisher paymentPublisher,
+        JourneyPaymentOutcomePublisher outcomePublisher,
+        InMemoryNotificationStore notificationStore)
         JourneyPaymentOutcomePublisher outcomePublisher)
     {
         this.intakeStore = intakeStore;
@@ -34,6 +41,7 @@ internal sealed class JourneyHarness
         this.decisionHandler = decisionHandler;
         this.paymentPublisher = paymentPublisher;
         this.outcomePublisher = outcomePublisher;
+        this.notificationStore = notificationStore;
     }
 
     public int PaymentPublishCount => paymentPublisher.PublishCount;
@@ -44,7 +52,12 @@ internal sealed class JourneyHarness
         var approvalStore = new JourneyApprovalStateStore();
         var policyStore = new JourneyPolicySettingsStore();
         var sagaStore = new JourneyPaymentSagaStore();
-        var outcomePublisher = new JourneyPaymentOutcomePublisher();
+        var notificationStore = new InMemoryNotificationStore();
+        var notificationProcessor = new NotificationProcessor(
+            notificationStore,
+            new JourneyNotificationChannel(),
+            NullLogger<NotificationProcessor>.Instance);
+        var outcomePublisher = new JourneyPaymentOutcomePublisher(notificationProcessor);
         var workflowStore = new SyncedSubmissionWorkflowStore(approvalStore);
 
         var paymentGateway = new StubPaymentGateway(
@@ -79,7 +92,8 @@ internal sealed class JourneyHarness
             approvalProcessor,
             decisionHandler,
             paymentPublisher,
-            outcomePublisher);
+            outcomePublisher,
+            notificationStore);
     }
 
     public async Task<SubmissionCreationResult> SubmitAsync(
@@ -123,6 +137,21 @@ internal sealed class JourneyHarness
     public PaymentCompletedEvent? LastCompleted => outcomePublisher.LastCompleted;
 
     public PaymentFailedEvent? LastFailed => outcomePublisher.LastFailed;
+
+    public async Task<NotificationRecord?> GetNotificationAsync(string trackingId)
+    {
+        var completed = await notificationStore.GetAsync(
+            trackingId,
+            NotificationOutcomeTypes.PaymentCompleted);
+        if (completed is not null)
+        {
+            return completed;
+        }
+
+        return await notificationStore.GetAsync(
+            trackingId,
+            NotificationOutcomeTypes.PaymentFailed);
+    }
 }
 
 internal sealed class JourneyApprovalStateStore : ISubmissionStateStore
@@ -192,21 +221,46 @@ internal sealed class JourneyPaymentSagaStore : IPaymentSagaStore
 
 internal sealed class JourneyPaymentOutcomePublisher : IPaymentOutcomePublisher
 {
+    private readonly NotificationProcessor notificationProcessor;
+
+    public JourneyPaymentOutcomePublisher(NotificationProcessor notificationProcessor)
+    {
+        this.notificationProcessor = notificationProcessor;
+    }
+
     public PaymentCompletedEvent? LastCompleted { get; private set; }
 
     public PaymentFailedEvent? LastFailed { get; private set; }
 
-    public Task PublishCompletedAsync(PaymentCompletedEvent paymentEvent)
+    public async Task PublishCompletedAsync(PaymentCompletedEvent paymentEvent)
     {
         LastCompleted = paymentEvent;
-        return Task.CompletedTask;
+        await notificationProcessor.ProcessPaymentCompletedAsync(
+            new NotificationService.Models.PaymentCompletedEvent(
+                paymentEvent.TrackingId,
+                paymentEvent.CorrelationId,
+                paymentEvent.Status,
+                paymentEvent.Reason,
+                paymentEvent.Amount));
     }
 
-    public Task PublishFailedAsync(PaymentFailedEvent paymentEvent)
+    public async Task PublishFailedAsync(PaymentFailedEvent paymentEvent)
     {
         LastFailed = paymentEvent;
-        return Task.CompletedTask;
+        await notificationProcessor.ProcessPaymentFailedAsync(
+            new NotificationService.Models.PaymentFailedEvent(
+                paymentEvent.TrackingId,
+                paymentEvent.CorrelationId,
+                paymentEvent.Status,
+                paymentEvent.Reason,
+                paymentEvent.Amount));
     }
+}
+
+internal sealed class JourneyNotificationChannel : INotificationChannel
+{
+    public Task SendAsync(NotificationRecord record, CancellationToken cancellationToken = default) =>
+        Task.CompletedTask;
 }
 
 internal sealed class JourneyPaymentRequestPublisher : IPaymentRequestPublisher
