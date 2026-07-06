@@ -5,6 +5,7 @@ export type UserRole = (typeof USER_ROLES)[number]
 export type NavItem = {
   label: string
   to: '/submissions' | '/approvals' | '/policy' | '/dashboard' | '/audit'
+  to: '/submissions' | '/approvals' | '/policy'
   roles: readonly UserRole[]
 }
 
