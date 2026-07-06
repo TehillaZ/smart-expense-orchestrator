@@ -56,7 +56,8 @@ public static class DashboardMetricsProjector
                 request.Amount,
                 request.DecisionType,
                 request.Vendor,
-                request.InvoiceNumber),
+                request.InvoiceNumber,
+                DateTimeOffset.UtcNow),
         };
 
         foreach (var item in current)

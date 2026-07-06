@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom'
 import type { ApprovalDecision, EscalationQueueItem } from '../../types/api'
 
 type EscalationQueueTableProps = {
@@ -7,7 +8,7 @@ type EscalationQueueTableProps = {
   onRetry?: () => void
   canDecide?: boolean
   decidingTrackingId?: string | null
-  onDecision?: (trackingId: string, decision: ApprovalDecision) => void
+  onRequestDecision?: (trackingId: string, decision: ApprovalDecision) => void
 }
 
 function formatAmount(amount: number): string {
@@ -27,6 +28,7 @@ const ACTION_BUTTON_BASE =
 const ACTION_BUTTON_VARIANTS = {
   approve: 'bg-emerald-600 hover:bg-emerald-700 focus:ring-emerald-300',
   reject: 'bg-red-600 hover:bg-red-700 focus:ring-red-300',
+  requestInfo: 'bg-amber-600 hover:bg-amber-700 focus:ring-amber-300',
 } as const
 
 export function EscalationQueueTable({
@@ -36,17 +38,17 @@ export function EscalationQueueTable({
   onRetry,
   canDecide = false,
   decidingTrackingId = null,
-  onDecision,
+  onRequestDecision,
 }: EscalationQueueTableProps) {
-  const columnCount = canDecide ? 7 : 6
+  const columnCount = canDecide ? 8 : 7
 
   return (
     <section className="rounded-xl border border-slate-200 bg-white shadow-sm">
       <div className="border-b border-slate-200 px-6 py-5">
         <h2 className="text-lg font-semibold text-slate-900">Escalation Queue</h2>
         <p className="mt-1 text-sm text-slate-500">
-          Items awaiting a human approver decision. Submit an expense over $400 or use category
-          &quot;Other&quot; to trigger escalation.
+          Only items the system escalated appear here. Review AI guidance, cited rules, and
+          escalation reason before deciding.
         </p>
       </div>
 
@@ -69,47 +71,29 @@ export function EscalationQueueTable({
         <table className="min-w-full divide-y divide-slate-200">
           <thead className="bg-slate-50">
             <tr>
-              <th
-                scope="col"
-                className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500"
-              >
+              <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
                 Invoice
               </th>
-              <th
-                scope="col"
-                className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500"
-              >
+              <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
                 Vendor
               </th>
-              <th
-                scope="col"
-                className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500"
-              >
+              <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
                 Amount
               </th>
-              <th
-                scope="col"
-                className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500"
-              >
-                Category
+              <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                AI
               </th>
-              <th
-                scope="col"
-                className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500"
-              >
-                AI Recommendation
+              <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                Rules cited
               </th>
-              <th
-                scope="col"
-                className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500"
-              >
-                Confidence
+              <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                Escalation reason
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                Review
               </th>
               {canDecide ? (
-                <th
-                  scope="col"
-                  className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500"
-                >
+                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
                   Actions
                 </th>
               ) : null}
@@ -133,12 +117,13 @@ export function EscalationQueueTable({
                 const isDeciding = decidingTrackingId === item.trackingId
 
                 return (
-                  <tr key={item.trackingId} className="transition-colors hover:bg-slate-50">
+                  <tr key={item.trackingId} className="align-top transition-colors hover:bg-slate-50">
                     <td className="whitespace-nowrap px-6 py-4">
                       <p className="font-mono text-sm font-medium text-slate-900">
                         {item.invoiceNumber}
                       </p>
                       <p className="mt-0.5 font-mono text-xs text-slate-500">{item.trackingId}</p>
+                      <p className="mt-1 text-xs text-slate-500">{item.category}</p>
                     </td>
                     <td className="whitespace-nowrap px-6 py-4 text-sm text-slate-700">
                       {item.vendor}
@@ -146,35 +131,52 @@ export function EscalationQueueTable({
                     <td className="whitespace-nowrap px-6 py-4 text-sm font-medium text-slate-900">
                       {formatAmount(item.amount)}
                     </td>
-                    <td className="whitespace-nowrap px-6 py-4 text-sm text-slate-700">
-                      {item.category}
-                    </td>
-                    <td className="whitespace-nowrap px-6 py-4">
-                      <span className="inline-flex items-center rounded-full bg-violet-100 px-2.5 py-1 text-xs font-semibold text-violet-800 ring-1 ring-inset ring-violet-200">
+                    <td className="px-6 py-4 text-sm text-slate-700">
+                      <span className="inline-flex rounded-full bg-violet-100 px-2.5 py-1 text-xs font-semibold text-violet-800 ring-1 ring-inset ring-violet-200">
                         {item.aiRecommendation}
                       </span>
+                      <p className="mt-1 text-xs text-slate-500">
+                        Confidence: {formatConfidence(item.confidence)}
+                      </p>
                     </td>
-                    <td className="whitespace-nowrap px-6 py-4 text-sm text-slate-700">
-                      {formatConfidence(item.confidence)}
+                    <td className="max-w-[10rem] px-6 py-4 text-xs text-slate-700">
+                      {item.citedRules.length > 0 ? item.citedRules.join(', ') : '—'}
+                    </td>
+                    <td className="max-w-xs px-6 py-4 text-sm text-slate-600">{item.reason}</td>
+                    <td className="whitespace-nowrap px-6 py-4 text-sm">
+                      <Link
+                        to={`/approvals/${encodeURIComponent(item.trackingId)}`}
+                        className="font-medium text-blue-700 underline hover:text-blue-900"
+                      >
+                        Review
+                      </Link>
                     </td>
                     {canDecide ? (
                       <td className="whitespace-nowrap px-6 py-4">
-                        <div className="flex flex-wrap gap-2">
+                        <div className="flex flex-col gap-2">
                           <button
                             type="button"
                             disabled={isDeciding}
-                            onClick={() => onDecision?.(item.trackingId, 'Approve')}
+                            onClick={() => onRequestDecision?.(item.trackingId, 'Approve')}
                             className={`${ACTION_BUTTON_BASE} ${ACTION_BUTTON_VARIANTS.approve}`}
                           >
-                            {isDeciding ? 'Saving…' : 'Approve'}
+                            Approve
                           </button>
                           <button
                             type="button"
                             disabled={isDeciding}
-                            onClick={() => onDecision?.(item.trackingId, 'Reject')}
+                            onClick={() => onRequestDecision?.(item.trackingId, 'Reject')}
                             className={`${ACTION_BUTTON_BASE} ${ACTION_BUTTON_VARIANTS.reject}`}
                           >
                             Reject
+                          </button>
+                          <button
+                            type="button"
+                            disabled={isDeciding}
+                            onClick={() => onRequestDecision?.(item.trackingId, 'RequestInfo')}
+                            className={`${ACTION_BUTTON_BASE} ${ACTION_BUTTON_VARIANTS.requestInfo}`}
+                          >
+                            Request Info
                           </button>
                         </div>
                       </td>

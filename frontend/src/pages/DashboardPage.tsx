@@ -1,7 +1,11 @@
 import { useCallback, useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
+import { DashboardOperationsChart } from '../components/dashboard/DashboardOperationsChart'
+import { useAppRole } from '../hooks/useAppRole'
 import { ApiRequestError } from '../services/apiClient'
 import { loadReportingSummary } from '../services/reportService'
 import type { ReportingSummaryResponse } from '../types/api'
+import { isDashboardReadOnly } from '../types/userRole'
 
 function formatCurrency(amount: number): string {
   return new Intl.NumberFormat('en-US', {
@@ -12,6 +16,22 @@ function formatCurrency(amount: number): string {
 
 function formatRate(rate: number): string {
   return `${Math.round(rate * 100)}%`
+}
+
+function formatTimestamp(value: string | null | undefined): string {
+  if (!value) {
+    return '—'
+  }
+
+  const parsed = new Date(value)
+  if (Number.isNaN(parsed.getTime())) {
+    return '—'
+  }
+
+  return new Intl.DateTimeFormat('en-US', {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  }).format(parsed)
 }
 
 type MetricCardProps = {
@@ -31,6 +51,8 @@ function MetricCard({ label, value, hint }: MetricCardProps) {
 }
 
 export function DashboardPage() {
+  const role = useAppRole()
+  const readOnly = isDashboardReadOnly(role)
   const [summary, setSummary] = useState<ReportingSummaryResponse | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
@@ -77,6 +99,13 @@ export function DashboardPage() {
         </button>
       </div>
 
+      {readOnly ? (
+        <div className="rounded-lg border border-slate-200 bg-slate-100 px-4 py-3 text-sm text-slate-700">
+          Auditor view: metrics are read-only. Use the audit trail to inspect individual
+          submissions.
+        </div>
+      ) : null}
+
       {errorMessage ? (
         <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
           {errorMessage}
@@ -118,6 +147,8 @@ export function DashboardPage() {
             />
           </div>
 
+          <DashboardOperationsChart summary={summary} />
+
           <section className="rounded-xl border border-slate-200 bg-white shadow-sm">
             <div className="border-b border-slate-200 px-6 py-5">
               <h3 className="text-lg font-semibold text-slate-900">Recent Activity</h3>
@@ -141,12 +172,18 @@ export function DashboardPage() {
                     <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
                       Decision
                     </th>
+                    <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                      Recorded
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                      Audit
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 bg-white">
                   {summary.recentActivity.length === 0 ? (
                     <tr>
-                      <td colSpan={5} className="px-6 py-10 text-center text-sm text-slate-500">
+                      <td colSpan={7} className="px-6 py-10 text-center text-sm text-slate-500">
                         No submissions yet.
                       </td>
                     </tr>
@@ -167,6 +204,17 @@ export function DashboardPage() {
                         </td>
                         <td className="whitespace-nowrap px-6 py-4 text-sm text-slate-700">
                           {item.decisionType}
+                        </td>
+                        <td className="whitespace-nowrap px-6 py-4 text-sm text-slate-500">
+                          {formatTimestamp(item.recordedAt)}
+                        </td>
+                        <td className="whitespace-nowrap px-6 py-4 text-sm">
+                          <Link
+                            to={`/audit?trackingId=${encodeURIComponent(item.trackingId)}`}
+                            className="font-medium text-blue-700 underline hover:text-blue-900"
+                          >
+                            View trail
+                          </Link>
                         </td>
                       </tr>
                     ))

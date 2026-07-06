@@ -4,6 +4,7 @@ import { useAppRole } from '../hooks/useAppRole'
 import { ApiRequestError } from '../services/apiClient'
 import { loadPolicySettings, updatePolicySettings } from '../services/policyService'
 import type { PolicySettings } from '../types/api'
+import { canManagePolicy } from '../types/userRole'
 
 type ToastState = {
   message: string
@@ -70,7 +71,7 @@ export function PolicySettingsPage() {
   }, [])
 
   useEffect(() => {
-    if (role === 'Admin') {
+    if (canManagePolicy(role)) {
       void refreshSettings()
     }
   }, [role, refreshSettings])
@@ -119,13 +120,13 @@ export function PolicySettingsPage() {
     }
   }
 
-  if (role !== 'Admin') {
+  if (!canManagePolicy(role)) {
     return (
       <section className="rounded-xl border border-amber-200 bg-amber-50 p-6 shadow-sm">
-        <h2 className="text-xl font-semibold text-amber-900">Admin access required</h2>
+        <h2 className="text-xl font-semibold text-amber-900">Controller access required</h2>
         <p className="mt-2 text-sm text-amber-800">
-          Policy settings are available only to the Admin role. Switch roles using the selector in
-          the top bar.
+          Policy settings are available only to the Controller role. Switch roles using the
+          selector in the top bar.
         </p>
       </section>
     )

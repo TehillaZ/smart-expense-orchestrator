@@ -125,6 +125,7 @@ export type RecentActivityItem = {
   decisionType: string
   vendor: string
   invoiceNumber: string
+  recordedAt?: string | null
 }
 
 export type ReportingSummaryResponse = {

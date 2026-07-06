@@ -1,7 +1,10 @@
-import { FormEvent, useState } from 'react'
+import { FormEvent, useCallback, useEffect, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
+import { PolicyCompliancePanel } from '../components/audit/PolicyCompliancePanel'
 import { ApiRequestError } from '../services/apiClient'
 import { loadAuditTrail } from '../services/auditService'
-import type { AuditTrailResponse } from '../types/api'
+import { loadPolicySettings } from '../services/policyService'
+import type { AuditTrailResponse, PolicySettings } from '../types/api'
 
 function formatCurrency(amount: number): string {
   return new Intl.NumberFormat('en-US', {
@@ -11,15 +14,15 @@ function formatCurrency(amount: number): string {
 }
 
 export function AuditTrailPage() {
+  const [searchParams] = useSearchParams()
   const [trackingId, setTrackingId] = useState('')
   const [audit, setAudit] = useState<AuditTrailResponse | null>(null)
+  const [policy, setPolicy] = useState<PolicySettings | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
-  async function handleSearch(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-
-    const trimmedId = trackingId.trim()
+  const runSearch = useCallback(async (id: string) => {
+    const trimmedId = id.trim()
     if (!trimmedId) {
       setErrorMessage('Enter a tracking id to search.')
       return
@@ -28,10 +31,15 @@ export function AuditTrailPage() {
     setIsLoading(true)
     setErrorMessage(null)
     setAudit(null)
+    setPolicy(null)
 
     try {
-      const trail = await loadAuditTrail(trimmedId)
+      const [trail, policySettings] = await Promise.all([
+        loadAuditTrail(trimmedId),
+        loadPolicySettings(),
+      ])
       setAudit(trail)
+      setPolicy(policySettings)
     } catch (error) {
       const message =
         error instanceof ApiRequestError
@@ -41,6 +49,19 @@ export function AuditTrailPage() {
     } finally {
       setIsLoading(false)
     }
+  }, [])
+
+  useEffect(() => {
+    const fromQuery = searchParams.get('trackingId')
+    if (fromQuery) {
+      setTrackingId(fromQuery)
+      void runSearch(fromQuery)
+    }
+  }, [searchParams, runSearch])
+
+  async function handleSearch(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    await runSearch(trackingId)
   }
 
   async function copyCorrelationId() {
@@ -56,8 +77,8 @@ export function AuditTrailPage() {
       <div>
         <h2 className="text-2xl font-semibold tracking-tight text-slate-900">Audit Trail</h2>
         <p className="mt-1 text-sm text-slate-600">
-          Search by tracking id to inspect policy rules, AI reasoning, human decisions, and payment
-          outcomes tied to one correlation id.
+          Search by tracking id to inspect policy rules, AI reasoning, human decisions, payment
+          outcomes, and autonomy limit compliance tied to one correlation id.
         </p>
       </div>
 
@@ -92,119 +113,128 @@ export function AuditTrailPage() {
         </div>
       ) : null}
 
-      {audit ? (
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-          <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm lg:col-span-1">
-            <h3 className="text-lg font-semibold text-slate-900">Submission</h3>
-            <dl className="mt-4 space-y-3 text-sm">
-              <div>
-                <dt className="font-medium text-slate-500">Vendor</dt>
-                <dd className="text-slate-900">{audit.invoice.vendor}</dd>
-              </div>
-              <div>
-                <dt className="font-medium text-slate-500">Invoice</dt>
-                <dd className="font-mono text-slate-900">{audit.invoice.invoiceNumber}</dd>
-              </div>
-              <div>
-                <dt className="font-medium text-slate-500">Amount</dt>
-                <dd className="text-slate-900">{formatCurrency(audit.invoice.amount)}</dd>
-              </div>
-              <div>
-                <dt className="font-medium text-slate-500">Category</dt>
-                <dd className="text-slate-900">{audit.invoice.category}</dd>
-              </div>
-              <div>
-                <dt className="font-medium text-slate-500">Policy version</dt>
-                <dd className="text-slate-900">{audit.policyVersion}</dd>
-              </div>
-              <div>
-                <dt className="font-medium text-slate-500">Correlation ID</dt>
-                <dd className="flex items-center gap-2">
-                  <span className="break-all font-mono text-xs text-slate-900">
-                    {audit.correlationId}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => void copyCorrelationId()}
-                    className="rounded-md border border-slate-300 px-2 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50"
-                  >
-                    Copy
-                  </button>
-                </dd>
-              </div>
-            </dl>
-          </section>
+      {audit && policy ? (
+        <>
+          <PolicyCompliancePanel audit={audit} policy={policy} />
 
-          <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm lg:col-span-2">
-            <h3 className="text-lg font-semibold text-slate-900">Decision Context</h3>
-            <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
-              <div className="rounded-lg border border-violet-200 bg-violet-50 p-4">
-                <p className="text-xs font-semibold uppercase tracking-wide text-violet-700">
-                  AI Recommendation
-                </p>
-                <p className="mt-2 text-sm font-medium text-violet-900">
-                  {audit.ai.recommendation ?? '—'}
-                </p>
-                <p className="mt-1 text-sm text-violet-800">
-                  Confidence: {audit.ai.confidence != null ? `${Math.round(audit.ai.confidence * 100)}%` : '—'}
-                </p>
-                <p className="mt-2 text-sm text-violet-900">{audit.ai.reasoningSummary}</p>
-                {audit.rulesApplied.length > 0 ? (
-                  <p className="mt-2 text-xs text-violet-800">
-                    Rules: {audit.rulesApplied.join(', ')}
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+            <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm lg:col-span-1">
+              <h3 className="text-lg font-semibold text-slate-900">Submission</h3>
+              <dl className="mt-4 space-y-3 text-sm">
+                <div>
+                  <dt className="font-medium text-slate-500">Vendor</dt>
+                  <dd className="text-slate-900">{audit.invoice.vendor}</dd>
+                </div>
+                <div>
+                  <dt className="font-medium text-slate-500">Invoice</dt>
+                  <dd className="font-mono text-slate-900">{audit.invoice.invoiceNumber}</dd>
+                </div>
+                <div>
+                  <dt className="font-medium text-slate-500">Amount</dt>
+                  <dd className="text-slate-900">{formatCurrency(audit.invoice.amount)}</dd>
+                </div>
+                <div>
+                  <dt className="font-medium text-slate-500">Category</dt>
+                  <dd className="text-slate-900">{audit.invoice.category}</dd>
+                </div>
+                <div>
+                  <dt className="font-medium text-slate-500">Policy version</dt>
+                  <dd className="text-slate-900">{audit.policyVersion}</dd>
+                </div>
+                <div>
+                  <dt className="font-medium text-slate-500">Correlation ID</dt>
+                  <dd className="flex items-center gap-2">
+                    <span className="break-all font-mono text-xs text-slate-900">
+                      {audit.correlationId}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => void copyCorrelationId()}
+                      className="rounded-md border border-slate-300 px-2 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50"
+                    >
+                      Copy
+                    </button>
+                  </dd>
+                </div>
+              </dl>
+            </section>
+
+            <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm lg:col-span-2">
+              <h3 className="text-lg font-semibold text-slate-900">Decision Context</h3>
+              <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
+                <div className="rounded-lg border border-violet-200 bg-violet-50 p-4">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-violet-700">
+                    AI Recommendation
                   </p>
-                ) : null}
-              </div>
-
-              <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
-                <p className="text-xs font-semibold uppercase tracking-wide text-slate-600">
-                  Human Decision
-                </p>
-                {audit.humanDecision ? (
-                  <>
-                    <p className="mt-2 text-sm font-medium text-slate-900">
-                      {audit.humanDecision.decision} by {audit.humanDecision.actor}
+                  <p className="mt-2 text-sm font-medium text-violet-900">
+                    {audit.ai.recommendation ?? '—'}
+                  </p>
+                  <p className="mt-1 text-sm text-violet-800">
+                    Confidence:{' '}
+                    {audit.ai.confidence != null
+                      ? `${Math.round(audit.ai.confidence * 100)}%`
+                      : '—'}
+                  </p>
+                  <p className="mt-2 text-sm text-violet-900">{audit.ai.reasoningSummary}</p>
+                  {audit.rulesApplied.length > 0 ? (
+                    <p className="mt-2 text-xs text-violet-800">
+                      Rules: {audit.rulesApplied.join(', ')}
                     </p>
-                    {audit.humanDecision.comment ? (
-                      <p className="mt-1 text-sm text-slate-700">{audit.humanDecision.comment}</p>
-                    ) : null}
-                  </>
-                ) : (
-                  <p className="mt-2 text-sm text-slate-600">No human decision recorded.</p>
-                )}
-              </div>
-            </div>
+                  ) : null}
+                </div>
 
-            {audit.payment ? (
-              <div className="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 p-4">
-                <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700">
-                  Payment Result
-                </p>
-                <p className="mt-2 text-sm font-medium text-emerald-900">{audit.payment.status}</p>
-                <p className="mt-1 text-sm text-emerald-800">{audit.payment.reason}</p>
+                <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-600">
+                    Human Decision
+                  </p>
+                  {audit.humanDecision ? (
+                    <>
+                      <p className="mt-2 text-sm font-medium text-slate-900">
+                        {audit.humanDecision.decision} by {audit.humanDecision.actor}
+                      </p>
+                      {audit.humanDecision.comment ? (
+                        <p className="mt-1 text-sm text-slate-700">
+                          {audit.humanDecision.comment}
+                        </p>
+                      ) : null}
+                    </>
+                  ) : (
+                    <p className="mt-2 text-sm text-slate-600">No human decision recorded.</p>
+                  )}
+                </div>
               </div>
-            ) : null}
 
-            <div className="mt-6">
-              <h4 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
-                Timeline
-              </h4>
-              <ol className="mt-4 space-y-4 border-l border-slate-200 pl-4">
-                {audit.timeline.map((event) => (
-                  <li key={`${event.step}-${event.summary}`} className="relative">
-                    <span className="absolute -left-[1.35rem] top-1 h-2.5 w-2.5 rounded-full bg-slate-900" />
-                    <p className="text-sm font-semibold text-slate-900">{event.step}</p>
-                    <p className="text-sm text-slate-700">{event.summary}</p>
-                    <p className="text-xs text-slate-500">{event.actor}</p>
-                    {event.detail ? (
-                      <p className="mt-1 text-xs text-slate-600">{event.detail}</p>
-                    ) : null}
-                  </li>
-                ))}
-              </ol>
-            </div>
-          </section>
-        </div>
+              {audit.payment ? (
+                <div className="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 p-4">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700">
+                    Payment Result
+                  </p>
+                  <p className="mt-2 text-sm font-medium text-emerald-900">{audit.payment.status}</p>
+                  <p className="mt-1 text-sm text-emerald-800">{audit.payment.reason}</p>
+                </div>
+              ) : null}
+
+              <div className="mt-6">
+                <h4 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
+                  Timeline
+                </h4>
+                <ol className="mt-4 space-y-4 border-l border-slate-200 pl-4">
+                  {audit.timeline.map((event) => (
+                    <li key={`${event.step}-${event.summary}`} className="relative">
+                      <span className="absolute -left-[1.35rem] top-1 h-2.5 w-2.5 rounded-full bg-slate-900" />
+                      <p className="text-sm font-semibold text-slate-900">{event.step}</p>
+                      <p className="text-sm text-slate-700">{event.summary}</p>
+                      <p className="text-xs text-slate-500">{event.actor}</p>
+                      {event.detail ? (
+                        <p className="mt-1 text-xs text-slate-600">{event.detail}</p>
+                      ) : null}
+                    </li>
+                  ))}
+                </ol>
+              </div>
+            </section>
+          </div>
+        </>
       ) : null}
     </div>
   )
