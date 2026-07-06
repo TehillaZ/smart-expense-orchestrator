@@ -93,6 +93,7 @@ public class SubmissionReceivedHandlerTests
             new StubInvoiceAiProvider(),
             new PolicyEngine(),
             publisher,
+            new NoOpMetricsRecorder(),
             NullLogger<ApprovalWorkflowProcessor>.Instance);
     }
 }

@@ -11,6 +11,7 @@ public sealed class ApprovalWorkflowProcessor
     private readonly IInvoiceAiProvider aiProvider;
     private readonly PolicyEngine policyEngine;
     private readonly IPaymentRequestPublisher paymentRequestPublisher;
+    private readonly IMetricsRecorder metricsRecorder;
     private readonly ILogger<ApprovalWorkflowProcessor> logger;
 
     public ApprovalWorkflowProcessor(
@@ -19,6 +20,7 @@ public sealed class ApprovalWorkflowProcessor
         IInvoiceAiProvider aiProvider,
         PolicyEngine policyEngine,
         IPaymentRequestPublisher paymentRequestPublisher,
+        IMetricsRecorder metricsRecorder,
         ILogger<ApprovalWorkflowProcessor> logger)
     {
         this.stateStore = stateStore;
@@ -26,6 +28,7 @@ public sealed class ApprovalWorkflowProcessor
         this.aiProvider = aiProvider;
         this.policyEngine = policyEngine;
         this.paymentRequestPublisher = paymentRequestPublisher;
+        this.metricsRecorder = metricsRecorder;
         this.logger = logger;
     }
 
@@ -88,6 +91,8 @@ public sealed class ApprovalWorkflowProcessor
                 await stateStore.AddToEscalationQueueAsync(finalState.TrackingId);
             }
 
+            await ApprovalMetricsRecorder.RecordPolicyOutcomeAsync(metricsRecorder, finalState);
+
             logger.LogInformation(
                 "Submission {TrackingId} evaluated to {Status}. Correlation {CorrelationId}.",
                 submissionEvent.TrackingId,
@@ -117,6 +122,7 @@ public sealed class ApprovalWorkflowProcessor
 
             await stateStore.SaveAsync(failedState);
             await stateStore.AddToEscalationQueueAsync(failedState.TrackingId);
+            await ApprovalMetricsRecorder.RecordPolicyOutcomeAsync(metricsRecorder, failedState);
         }
     }
 

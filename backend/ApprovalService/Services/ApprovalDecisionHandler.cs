@@ -6,15 +6,18 @@ public sealed class ApprovalDecisionHandler
 {
     private readonly ISubmissionStateStore stateStore;
     private readonly IPaymentRequestPublisher paymentRequestPublisher;
+    private readonly IMetricsRecorder metricsRecorder;
     private readonly ILogger<ApprovalDecisionHandler> logger;
 
     public ApprovalDecisionHandler(
         ISubmissionStateStore stateStore,
         IPaymentRequestPublisher paymentRequestPublisher,
+        IMetricsRecorder metricsRecorder,
         ILogger<ApprovalDecisionHandler> logger)
     {
         this.stateStore = stateStore;
         this.paymentRequestPublisher = paymentRequestPublisher;
+        this.metricsRecorder = metricsRecorder;
         this.logger = logger;
     }
 
@@ -43,12 +46,15 @@ public sealed class ApprovalDecisionHandler
             ? state.CorrelationId
             : request.CorrelationId.Trim();
 
-        var (status, reason) = MapDecision(request.Decision!.Trim(), request.Comment);
+        var (status, reason, humanDecision, humanDecisionComment) =
+            MapDecision(request.Decision!.Trim(), request.Comment);
 
         var updated = state with
         {
             Status = status,
-            Reason = reason
+            Reason = reason,
+            HumanDecision = humanDecision,
+            HumanDecisionComment = humanDecisionComment
         };
 
         await stateStore.SaveAsync(updated);
@@ -64,6 +70,14 @@ public sealed class ApprovalDecisionHandler
             trackingId,
             status);
 
+        if (!string.Equals(request.Decision, "RequestInfo", StringComparison.OrdinalIgnoreCase))
+        {
+            await ApprovalMetricsRecorder.RecordHumanDecisionAsync(
+                metricsRecorder,
+                updated,
+                request.Decision!.Trim());
+        }
+
         if (string.Equals(status, ApprovalStatuses.HumanApproved, StringComparison.Ordinal))
         {
             await paymentRequestPublisher.PublishAsync(updated);
@@ -72,25 +86,35 @@ public sealed class ApprovalDecisionHandler
         return (new ApprovalDecisionResponse(trackingId, status, correlationId, reason), []);
     }
 
-    private static (string Status, string Reason) MapDecision(string decision, string? comment)
+    private static (string Status, string Reason, string HumanDecision, string? HumanDecisionComment) MapDecision(
+        string decision,
+        string? comment)
     {
+        var trimmedComment = string.IsNullOrWhiteSpace(comment) ? null : comment.Trim();
+
         return decision switch
         {
             "Approve" => (
                 ApprovalStatuses.HumanApproved,
-                string.IsNullOrWhiteSpace(comment)
+                trimmedComment is null
                     ? "Expense approved by a human reviewer."
-                    : $"Expense approved by a human reviewer. Note: {comment.Trim()}"),
+                    : $"Expense approved by a human reviewer. Note: {trimmedComment}",
+                "Approve",
+                trimmedComment),
             "Reject" => (
                 ApprovalStatuses.Rejected,
-                string.IsNullOrWhiteSpace(comment)
+                trimmedComment is null
                     ? "Expense rejected by a human reviewer."
-                    : $"Expense rejected by a human reviewer. Note: {comment.Trim()}"),
+                    : $"Expense rejected by a human reviewer. Note: {trimmedComment}",
+                "Reject",
+                trimmedComment),
             "RequestInfo" => (
                 ApprovalStatuses.Escalated,
-                string.IsNullOrWhiteSpace(comment)
+                trimmedComment is null
                     ? "More information was requested before a final decision."
-                    : $"More information requested: {comment.Trim()}"),
+                    : $"More information requested: {trimmedComment}",
+                "RequestInfo",
+                trimmedComment),
             _ => throw new InvalidOperationException($"Unsupported decision: {decision}")
         };
     }

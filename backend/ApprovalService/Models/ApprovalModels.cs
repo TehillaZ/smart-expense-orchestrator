@@ -34,4 +34,6 @@ public sealed record SubmissionState(
     string? AiRecommendation = null,
     decimal? AiConfidence = null,
     IReadOnlyList<string>? CitedRules = null,
-    string? PolicyVersion = null);
+    string? PolicyVersion = null,
+    string? HumanDecision = null,
+    string? HumanDecisionComment = null);

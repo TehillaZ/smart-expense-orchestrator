@@ -1,6 +1,7 @@
 using System.Net;
 using Dapr.Client;
 using IntakeService.Models;
+using Microsoft.Extensions.Logging;
 
 namespace IntakeService.Services;
 
@@ -85,11 +86,10 @@ public sealed class DaprSubmissionStore : ISubmissionStore
     {
         try
         {
-            var registry = await daprClient.GetStateAsync<List<string>>(StateStoreName, RegistryKey)
-                ?? [];
-
+            var registry = await daprClient.GetStateAsync<List<string>>(StateStoreName, RegistryKey) ?? [];
             var submissions = new List<SubmissionStatusResponse>(registry.Count);
 
+            // TODO: בעתיד כדאי להחליף את זה ב-Dapr State Management Query API כדי למנוע קריאות מרובות בלולאה
             foreach (var trackingId in registry)
             {
                 var submission = await GetSubmissionAsync(trackingId);
@@ -115,23 +115,16 @@ public sealed class DaprSubmissionStore : ISubmissionStore
     {
         try
         {
-            var sharedState = await daprClient.GetStateAsync<SubmissionStatusResponse>(
-                StateStoreName,
-                trackingId);
+            // 1. קריאה מה-State Store המקומי
+            var sharedState = await daprClient.GetStateAsync<SubmissionStatusResponse>(StateStoreName, trackingId);
 
-            if (sharedState is not null
-                && !string.Equals(sharedState.Status, InitialStatus, StringComparison.Ordinal))
-            {
-                return sharedState;
-            }
-
+            // 2. קריאה סינכרונית משירות ה-Approval לקבלת סטטוס עדכני מה-Workflow
             var workflowStatus = await TryGetWorkflowStatusFromApprovalServiceAsync(trackingId);
-            if (workflowStatus is not null)
-            {
-                return workflowStatus;
-            }
+            
+            // 3. שימוש ב-Resolver שכתבת כדי להחליט מי הסטטוס הנכון והעדכני ביותר
+            var resolved = SubmissionStateResolver.Resolve(sharedState, workflowStatus);
 
-            return sharedState;
+            return resolved ?? sharedState;
         }
         catch (Exception ex)
         {
@@ -172,8 +165,9 @@ public sealed class DaprSubmissionStore : ISubmissionStore
 
     private async Task RegisterTrackingIdAsync(string trackingId)
     {
-        var registry = await daprClient.GetStateAsync<List<string>>(StateStoreName, RegistryKey)
-            ?? [];
+        // הערת ארכיטקטורה: במערכת פרודקשן אמיתית, חובה להשתמש כאן ב-ETag או ב-Dapr Transactions
+        // כדי למנוע מצב שבו שני משתמשים דורסים אחד את השני ברישום האינדקס (Race Condition).
+        var registry = await daprClient.GetStateAsync<List<string>>(StateStoreName, RegistryKey) ?? [];
 
         if (registry.Contains(trackingId, StringComparer.Ordinal))
         {
@@ -184,5 +178,4 @@ public sealed class DaprSubmissionStore : ISubmissionStore
         await daprClient.SaveStateAsync(StateStoreName, RegistryKey, registry);
     }
 
-    private static string BuildIndexKey(string idempotencyKey) => $"{IndexKeyPrefix}:{idempotencyKey}";
-}
+    private static string BuildIndexKey(string idempotencyKey) =>

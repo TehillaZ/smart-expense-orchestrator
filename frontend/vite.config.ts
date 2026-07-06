@@ -11,11 +11,19 @@ export default defineConfig({
         target: 'http://localhost:8080',
         changeOrigin: true,
       },
-      '/approvals/': {
+      '/approvals': {
         target: 'http://localhost:8080',
         changeOrigin: true,
       },
       '/policy': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+      },
+      '/audit': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+      },
+      '/reports': {
         target: 'http://localhost:8080',
         changeOrigin: true,
       },
