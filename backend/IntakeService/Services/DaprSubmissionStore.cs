@@ -86,10 +86,11 @@ public sealed class DaprSubmissionStore : ISubmissionStore
     {
         try
         {
-            var registry = await daprClient.GetStateAsync<List<string>>(StateStoreName, RegistryKey) ?? [];
+            var registry = await daprClient.GetStateAsync<List<string>>(StateStoreName, RegistryKey)
+                ?? [];
+
             var submissions = new List<SubmissionStatusResponse>(registry.Count);
 
-            // TODO: בעתיד כדאי להחליף את זה ב-Dapr State Management Query API כדי למנוע קריאות מרובות בלולאה
             foreach (var trackingId in registry)
             {
                 var submission = await GetSubmissionAsync(trackingId);
@@ -115,13 +116,11 @@ public sealed class DaprSubmissionStore : ISubmissionStore
     {
         try
         {
-            // 1. קריאה מה-State Store המקומי
-            var sharedState = await daprClient.GetStateAsync<SubmissionStatusResponse>(StateStoreName, trackingId);
+            var sharedState = await daprClient.GetStateAsync<SubmissionStatusResponse>(
+                StateStoreName,
+                trackingId);
 
-            // 2. קריאה סינכרונית משירות ה-Approval לקבלת סטטוס עדכני מה-Workflow
             var workflowStatus = await TryGetWorkflowStatusFromApprovalServiceAsync(trackingId);
-            
-            // 3. שימוש ב-Resolver שכתבת כדי להחליט מי הסטטוס הנכון והעדכני ביותר
             var resolved = SubmissionStateResolver.Resolve(sharedState, workflowStatus);
 
             return resolved ?? sharedState;
@@ -165,9 +164,8 @@ public sealed class DaprSubmissionStore : ISubmissionStore
 
     private async Task RegisterTrackingIdAsync(string trackingId)
     {
-        // הערת ארכיטקטורה: במערכת פרודקשן אמיתית, חובה להשתמש כאן ב-ETag או ב-Dapr Transactions
-        // כדי למנוע מצב שבו שני משתמשים דורסים אחד את השני ברישום האינדקס (Race Condition).
-        var registry = await daprClient.GetStateAsync<List<string>>(StateStoreName, RegistryKey) ?? [];
+        var registry = await daprClient.GetStateAsync<List<string>>(StateStoreName, RegistryKey)
+            ?? [];
 
         if (registry.Contains(trackingId, StringComparer.Ordinal))
         {
@@ -178,4 +176,5 @@ public sealed class DaprSubmissionStore : ISubmissionStore
         await daprClient.SaveStateAsync(StateStoreName, RegistryKey, registry);
     }
 
-    private static string BuildIndexKey(string idempotencyKey) =>
+    private static string BuildIndexKey(string idempotencyKey) => $"{IndexKeyPrefix}:{idempotencyKey}";
+}

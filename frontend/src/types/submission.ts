@@ -21,6 +21,18 @@ export type SubmissionRecord = {
   invoiceNumber: string
   category: ExpenseCategory
   backendStatus?: string
+  reason?: string
+  isDuplicateResubmit?: boolean
+}
+
+export type SubmissionDetail = SubmissionRecord & {
+  correlationId: string
+  reason: string
+  notificationReason?: string | null
+  aiRecommendation?: string | null
+  aiConfidence?: number | null
+  citedRules?: string[]
+  policyVersion?: string | null
 }
 
 export type SubmitExpenseFormData = {

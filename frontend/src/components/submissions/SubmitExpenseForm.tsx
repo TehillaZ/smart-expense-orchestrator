@@ -4,6 +4,11 @@ import {
   type ExpenseCategory,
   type SubmitExpenseFormData,
 } from '../../types/submission'
+import {
+  hasSubmitExpenseFormErrors,
+  validateSubmitExpenseForm,
+  type SubmitExpenseFormErrors,
+} from '../../utils/submitExpenseValidation'
 
 const EMPTY_FORM: SubmitExpenseFormData = {
   vendorName: '',
@@ -11,8 +16,6 @@ const EMPTY_FORM: SubmitExpenseFormData = {
   amount: '',
   category: '',
 }
-
-type FormErrors = Partial<Record<keyof SubmitExpenseFormData, string>>
 
 type SubmitExpenseFormProps = {
   onSubmit: (data: {
@@ -23,32 +26,9 @@ type SubmitExpenseFormProps = {
   }) => Promise<void>
 }
 
-function validateForm(data: SubmitExpenseFormData): FormErrors {
-  const errors: FormErrors = {}
-
-  if (!data.vendorName.trim()) {
-    errors.vendorName = 'Vendor name is required.'
-  }
-
-  if (!data.invoiceNumber.trim()) {
-    errors.invoiceNumber = 'Invoice number is required.'
-  }
-
-  const amount = Number.parseFloat(data.amount)
-  if (!data.amount.trim() || Number.isNaN(amount) || amount <= 0) {
-    errors.amount = 'Enter a valid amount greater than zero.'
-  }
-
-  if (!data.category) {
-    errors.category = 'Select a category.'
-  }
-
-  return errors
-}
-
 export function SubmitExpenseForm({ onSubmit }: SubmitExpenseFormProps) {
   const [form, setForm] = useState<SubmitExpenseFormData>(EMPTY_FORM)
-  const [errors, setErrors] = useState<FormErrors>({})
+  const [errors, setErrors] = useState<SubmitExpenseFormErrors>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   function updateField<K extends keyof SubmitExpenseFormData>(
@@ -62,8 +42,8 @@ export function SubmitExpenseForm({ onSubmit }: SubmitExpenseFormProps) {
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
 
-    const validationErrors = validateForm(form)
-    if (Object.keys(validationErrors).length > 0) {
+    const validationErrors = validateSubmitExpenseForm(form)
+    if (hasSubmitExpenseFormErrors(validationErrors)) {
       setErrors(validationErrors)
       return
     }

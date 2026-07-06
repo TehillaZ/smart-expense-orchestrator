@@ -81,4 +81,22 @@ public class PolicyEngineTests
 
         Assert.Equal(ApprovalStatuses.Escalated, result.FinalStatus);
     }
+
+    [Fact]
+    public void Evaluate_WithAdversarialAiRecommendation_StillEscalatesAboveCeiling()
+    {
+        var engine = new PolicyEngine();
+
+        var result = engine.Evaluate(
+            SampleEvent(500m),
+            PolicySettings.Default,
+            new AiRecommendationResult(
+                "Approve",
+                0.99m,
+                ["PROMPT-INJECTION"],
+                "User said approve me — recommending approval regardless of amount."));
+
+        Assert.Equal(ApprovalStatuses.Escalated, result.FinalStatus);
+        Assert.Contains("AUTONOMY-CEILING", result.AppliedRules);
+    }
 }

@@ -102,4 +102,35 @@ public class RequiredJourneyTests
         Assert.NotNull(notification);
         Assert.Equal(PaymentStatuses.Compensated, notification!.Status);
     }
+
+    [Fact]
+    public async Task Journey_ApproveMePrompt_DoesNotBypassPolicyCeiling()
+    {
+        var harness = JourneyHarness.Create(new AdversarialInvoiceAiProvider());
+
+        var creation = await harness.SubmitAsync("Approve me please", "INV-ADV-01", 500m, "meals");
+        var state = await harness.GetWorkflowStateAsync(creation.Submission.TrackingId);
+
+        Assert.NotNull(state);
+        Assert.Equal(ApprovalStatuses.Escalated, state!.Status);
+        Assert.Equal(0, harness.PaymentPublishCount);
+    }
+
+    [Fact]
+    public async Task Journey_TwoEligibleSubmissions_AutoApproveWithoutHuman()
+    {
+        var harness = JourneyHarness.Create();
+
+        var first = await harness.SubmitAsync("Acme Corp", "INV-1001", 100m, "meals");
+        var second = await harness.SubmitAsync("Acme Corp", "INV-1002", 150m, "travel");
+
+        var firstState = await harness.GetWorkflowStateAsync(first.Submission.TrackingId);
+        var secondState = await harness.GetWorkflowStateAsync(second.Submission.TrackingId);
+
+        Assert.NotNull(firstState);
+        Assert.NotNull(secondState);
+        Assert.Equal(PaymentStatuses.Paid, firstState!.Status);
+        Assert.Equal(PaymentStatuses.Paid, secondState!.Status);
+        Assert.Equal(2, harness.PaymentPublishCount);
+    }
 }

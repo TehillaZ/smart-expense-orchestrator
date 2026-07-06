@@ -38,7 +38,7 @@ public static class SubmissionRoutes
 
             var creation = await store.CreateSubmissionAsync(request, correlationId);
             var submission = creation.Submission;
-
+            // the idempotency check is done here
             if (!creation.IsDuplicate)
             {
                 var submissionEvent = new SubmissionReceivedEvent(
@@ -49,12 +49,21 @@ public static class SubmissionRoutes
                     submission.Amount,
                     submission.Category);
 
+                var published = false;
+
                 try
                 {
                     await daprClient.PublishEventAsync(
                         PubSubName,
                         SubmissionReceivedTopic,
                         submissionEvent);
+                    published = true;
+
+                    logger.LogInformation(
+                        "Published {Topic} for submission {TrackingId} with correlation {CorrelationId}.",
+                        SubmissionReceivedTopic,
+                        submission.TrackingId,
+                        correlationId);
                 }
                 catch (Exception ex)
                 {
@@ -66,21 +75,29 @@ public static class SubmissionRoutes
                         correlationId);
                 }
 
-                try
+                if (!published)
                 {
-                    await daprClient.InvokeMethodAsync(
-                        HttpMethod.Post,
-                        DaprServiceIds.ApprovalService,
-                        "internal/submissions/process",
-                        submissionEvent);
-                }
-                catch (Exception ex)
-                {
-                    logger.LogError(
-                        ex,
-                        "Failed to invoke direct approval processing for submission {TrackingId} with correlation {CorrelationId}.",
-                        submission.TrackingId,
-                        correlationId);
+                    try
+                    {
+                        await daprClient.InvokeMethodAsync(
+                            HttpMethod.Post,
+                            DaprServiceIds.ApprovalService,
+                            "internal/submissions/process",
+                            submissionEvent);
+
+                        logger.LogWarning(
+                            "Used direct approval invocation fallback for submission {TrackingId} with correlation {CorrelationId}.",
+                            submission.TrackingId,
+                            correlationId);
+                    }
+                    catch (Exception ex)
+                    {
+                        logger.LogError(
+                            ex,
+                            "Failed to invoke direct approval processing for submission {TrackingId} with correlation {CorrelationId}.",
+                            submission.TrackingId,
+                            correlationId);
+                    }
                 }
 
                 try

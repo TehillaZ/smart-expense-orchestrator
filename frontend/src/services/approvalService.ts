@@ -4,10 +4,38 @@ import type {
   ApprovalDecisionResponse,
   EscalationQueueItem,
 } from '../types/api'
+import { loadSubmissionDetail } from './submissionService'
 import { requestJson } from './apiClient'
 
 export async function loadEscalationQueue(): Promise<EscalationQueueItem[]> {
   return requestJson<EscalationQueueItem[]>(API_ENDPOINTS.approvalsQueue)
+}
+
+export async function loadEscalationItem(
+  trackingId: string,
+): Promise<EscalationQueueItem | null> {
+  const queue = await loadEscalationQueue()
+  const fromQueue = queue.find((item) => item.trackingId === trackingId)
+  if (fromQueue) {
+    return fromQueue
+  }
+
+  const detail = await loadSubmissionDetail(trackingId)
+  if (!detail) {
+    return null
+  }
+
+  return {
+    trackingId: detail.trackingId,
+    vendor: detail.vendor,
+    invoiceNumber: detail.invoiceNumber,
+    amount: detail.amount,
+    category: detail.category,
+    aiRecommendation: detail.aiRecommendation ?? 'Escalate',
+    confidence: detail.aiConfidence ?? 0,
+    citedRules: detail.citedRules ?? [],
+    reason: detail.reason,
+  }
 }
 
 export async function submitApprovalDecision(

@@ -45,7 +45,10 @@ internal sealed class JourneyHarness
 
     public int PaymentPublishCount => paymentPublisher.PublishCount;
 
-    public static JourneyHarness Create()
+    public static JourneyHarness Create(IInvoiceAiProvider? aiProvider = null) =>
+        CreateCore(aiProvider ?? new StubInvoiceAiProvider());
+
+    private static JourneyHarness CreateCore(IInvoiceAiProvider aiProvider)
     {
         var intakeStore = new InMemorySubmissionStore();
         var approvalStore = new JourneyApprovalStateStore();
@@ -76,7 +79,7 @@ internal sealed class JourneyHarness
         var approvalProcessor = new ApprovalWorkflowProcessor(
             approvalStore,
             policyStore,
-            new StubInvoiceAiProvider(),
+            aiProvider,
             new PolicyEngine(),
             paymentPublisher,
             new NoOpApprovalMetricsRecorder(),

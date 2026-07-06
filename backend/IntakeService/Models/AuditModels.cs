@@ -48,7 +48,8 @@ public sealed record RecentActivityItem(
     decimal Amount,
     string DecisionType,
     string Vendor,
-    string InvoiceNumber);
+    string InvoiceNumber,
+    DateTimeOffset RecordedAt);
 
 public sealed record ReportingSummaryResponse(
     int TotalSubmissions,

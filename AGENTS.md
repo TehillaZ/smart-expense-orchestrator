@@ -47,6 +47,18 @@
 ## Execution Workflow
 - Never perform git add, git commit, git push, or create pull requests unless the user explicitly requests it.
 
+### Sync With `main` Before Changes
+- **Before starting any implementation work** (code edits, new files, refactors), sync the current branch with the latest `main` from GitHub.
+- Use this workflow at the start of each Agent-mode task:
+  1. `git fetch origin`
+  2. If on `main`: run `git pull origin main`
+  3. If on a feature branch: merge `origin/main` into the current branch (or rebase onto `origin/main` if the user prefers rebase)
+  4. Resolve any merge conflicts before making new changes
+- Skip this step only when:
+  - The user explicitly asks not to sync with `main`
+  - The task is read-only (Ask mode, reviews, explanations)
+  - The task is limited to git operations the user requested directly (commit, push, PR)
+
 ## 8. Industry Production Standards
 - **Security:** NEVER hardcode secrets, API keys, or passwords. Always use Environment Variables or configuration files (`appsettings.json`).
 - **Naming Conventions:** Follow strict language standards (PascalCase for C# methods/classes, camelCase for variables; PascalCase for React components and file names).
