@@ -68,6 +68,7 @@ internal sealed class JourneyHarness
             workflowStore,
             paymentGateway,
             outcomePublisher,
+            new NoOpPaymentMetricsRecorder(),
             NullLogger<PaymentSagaProcessor>.Instance);
 
         var paymentPublisher = new JourneyPaymentRequestPublisher(paymentProcessor);
@@ -78,11 +79,13 @@ internal sealed class JourneyHarness
             new StubInvoiceAiProvider(),
             new PolicyEngine(),
             paymentPublisher,
+            new NoOpApprovalMetricsRecorder(),
             NullLogger<ApprovalWorkflowProcessor>.Instance);
 
         var decisionHandler = new ApprovalDecisionHandler(
             approvalStore,
             paymentPublisher,
+            new NoOpApprovalMetricsRecorder(),
             NullLogger<ApprovalDecisionHandler>.Instance);
 
         return new JourneyHarness(

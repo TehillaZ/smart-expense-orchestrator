@@ -78,6 +78,70 @@ export type PolicySettingsUpdatePayload = {
   autonomyConfidence?: number
 }
 
+export type AuditTimelineEvent = {
+  step: string
+  summary: string
+  actor: string
+  detail?: string | null
+}
+
+export type AuditTrailResponse = {
+  trackingId: string
+  correlationId: string
+  invoice: {
+    trackingId: string
+    vendor: string
+    invoiceNumber: string
+    amount: number
+    category: string
+  }
+  policyVersion: string
+  rulesApplied: string[]
+  ai: {
+    recommendation?: string | null
+    confidence?: number | null
+    citedRules: string[]
+    reasoningSummary: string
+  }
+  humanDecision?: {
+    decision: string
+    comment?: string | null
+    actor: string
+  } | null
+  payment?: {
+    status: string
+    reason: string
+    outcomeType?: string | null
+    channel?: string | null
+    notifiedAt?: string | null
+  } | null
+  timeline: AuditTimelineEvent[]
+}
+
+export type RecentActivityItem = {
+  trackingId: string
+  status: string
+  amount: number
+  decisionType: string
+  vendor: string
+  invoiceNumber: string
+}
+
+export type ReportingSummaryResponse = {
+  totalSubmissions: number
+  autoApprovedCount: number
+  escalatedCount: number
+  humanApprovedCount: number
+  rejectedCount: number
+  paidCount: number
+  paymentFailedCount: number
+  autoApprovedAmount: number
+  humanApprovedAmount: number
+  autoApprovalRate: number
+  escalationRate: number
+  recentActivity: RecentActivityItem[]
+}
+
 export type ApiErrorBody = {
   message?: string
   errors?: string[]

@@ -4,13 +4,15 @@ export type UserRole = (typeof USER_ROLES)[number]
 
 export type NavItem = {
   label: string
-  to: '/submissions' | '/approvals' | '/policy'
+  to: '/submissions' | '/approvals' | '/policy' | '/dashboard' | '/audit'
   roles: readonly UserRole[]
 }
 
 export const NAV_ITEMS: readonly NavItem[] = [
   { label: 'My Submissions', to: '/submissions', roles: ['Submitter', 'Admin'] },
   { label: 'Approvals Queue', to: '/approvals', roles: ['Approver', 'Admin'] },
+  { label: 'Dashboard', to: '/dashboard', roles: ['Admin'] },
+  { label: 'Audit Trail', to: '/audit', roles: ['Admin'] },
   { label: 'Policy Settings', to: '/policy', roles: ['Admin'] },
 ] as const
 
@@ -48,7 +50,7 @@ export function getRoleDescription(role: UserRole): string {
     case 'Approver':
       return 'Review escalated expenses and approve or reject them.'
     case 'Admin':
-      return 'Full access: submissions, approvals, and policy settings.'
+      return 'Full access: submissions, approvals, dashboard, audit trail, and policy settings.'
     default: {
       const _exhaustive: never = role
       return _exhaustive

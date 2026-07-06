@@ -119,19 +119,10 @@ public sealed class DaprSubmissionStore : ISubmissionStore
                 StateStoreName,
                 trackingId);
 
-            if (sharedState is not null
-                && !string.Equals(sharedState.Status, InitialStatus, StringComparison.Ordinal))
-            {
-                return sharedState;
-            }
-
             var workflowStatus = await TryGetWorkflowStatusFromApprovalServiceAsync(trackingId);
-            if (workflowStatus is not null)
-            {
-                return workflowStatus;
-            }
+            var resolved = SubmissionStateResolver.Resolve(sharedState, workflowStatus);
 
-            return sharedState;
+            return resolved ?? sharedState;
         }
         catch (Exception ex)
         {

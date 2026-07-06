@@ -19,6 +19,14 @@ export default defineConfig({
         target: 'http://localhost:8080',
         changeOrigin: true,
       },
+      '/audit/': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+      },
+      '/reports/': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+      },
       '/notifications': {
         target: 'http://localhost:5004',
         changeOrigin: true,

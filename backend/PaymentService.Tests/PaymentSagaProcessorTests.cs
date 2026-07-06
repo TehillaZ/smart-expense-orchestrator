@@ -159,6 +159,7 @@ public class PaymentSagaProcessorTests
             workflowStore,
             gateway,
             publisher,
+            new NoOpMetricsRecorder(),
             NullLogger<PaymentSagaProcessor>.Instance);
     }
 }

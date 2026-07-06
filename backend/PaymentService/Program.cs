@@ -10,6 +10,7 @@ builder.Services.AddSingleton<IPaymentSagaStore, DaprPaymentSagaStore>();
 builder.Services.AddSingleton<ISubmissionWorkflowStore, DaprSubmissionWorkflowStore>();
 builder.Services.AddSingleton<IPaymentGateway, StubPaymentGateway>();
 builder.Services.AddSingleton<IPaymentOutcomePublisher, DaprPaymentOutcomePublisher>();
+builder.Services.AddSingleton<IMetricsRecorder, DaprMetricsRecorder>();
 builder.Services.AddSingleton<PaymentSagaProcessor>();
 builder.Services.AddSingleton<PaymentRequestedHandler>();
 builder.Services.AddOpenApi();

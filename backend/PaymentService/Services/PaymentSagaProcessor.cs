@@ -8,6 +8,7 @@ public sealed class PaymentSagaProcessor
     private readonly ISubmissionWorkflowStore workflowStore;
     private readonly IPaymentGateway paymentGateway;
     private readonly IPaymentOutcomePublisher outcomePublisher;
+    private readonly IMetricsRecorder metricsRecorder;
     private readonly ILogger<PaymentSagaProcessor> logger;
 
     public PaymentSagaProcessor(
@@ -15,12 +16,14 @@ public sealed class PaymentSagaProcessor
         ISubmissionWorkflowStore workflowStore,
         IPaymentGateway paymentGateway,
         IPaymentOutcomePublisher outcomePublisher,
+        IMetricsRecorder metricsRecorder,
         ILogger<PaymentSagaProcessor> logger)
     {
         this.sagaStore = sagaStore;
         this.workflowStore = workflowStore;
         this.paymentGateway = paymentGateway;
         this.outcomePublisher = outcomePublisher;
+        this.metricsRecorder = metricsRecorder;
         this.logger = logger;
     }
 
@@ -72,6 +75,8 @@ public sealed class PaymentSagaProcessor
                 submission.Status);
             return;
         }
+
+        var approvalOutcomeStatus = submission.Status;
 
         var pendingSubmission = submission with
         {
@@ -151,6 +156,11 @@ public sealed class PaymentSagaProcessor
                     paidSubmission.Reason,
                     paymentEvent.Amount));
 
+            await PaymentMetricsRecorder.RecordPaidAsync(
+                metricsRecorder,
+                paidSubmission,
+                approvalOutcomeStatus);
+
             logger.LogInformation(
                 "Payment saga completed successfully for submission {TrackingId}.",
                 paymentEvent.TrackingId);
@@ -214,6 +224,11 @@ public sealed class PaymentSagaProcessor
                 status,
                 reason,
                 pendingSubmission.Amount));
+
+        await PaymentMetricsRecorder.RecordPaymentFailedAsync(
+            metricsRecorder,
+            failedSubmission,
+            status);
 
         logger.LogWarning(
             "Payment saga failed for submission {TrackingId} with status {Status}.",

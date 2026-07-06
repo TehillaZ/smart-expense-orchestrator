@@ -14,6 +14,7 @@ public static class SubmissionRoutes
         app.MapPost("/submissions", async (
             SubmissionRequest request,
             ISubmissionStore store,
+            IDashboardMetricsStore metricsStore,
             DaprClient daprClient,
             ILoggerFactory loggerFactory) =>
         {
@@ -78,6 +79,19 @@ public static class SubmissionRoutes
                     logger.LogError(
                         ex,
                         "Failed to invoke direct approval processing for submission {TrackingId} with correlation {CorrelationId}.",
+                        submission.TrackingId,
+                        correlationId);
+                }
+
+                try
+                {
+                    await DashboardMetricsRecorder.RecordSubmissionCreatedAsync(metricsStore, submission);
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError(
+                        ex,
+                        "Failed to record dashboard metrics for new submission {TrackingId} with correlation {CorrelationId}.",
                         submission.TrackingId,
                         correlationId);
                 }

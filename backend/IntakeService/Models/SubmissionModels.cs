@@ -27,7 +27,9 @@ public sealed record SubmissionStatusResponse(
     string? AiRecommendation = null,
     decimal? AiConfidence = null,
     IReadOnlyList<string>? CitedRules = null,
-    string? PolicyVersion = null);
+    string? PolicyVersion = null,
+    string? HumanDecision = null,
+    string? HumanDecisionComment = null);
 
 public sealed record ValidationErrorResponse(
     IReadOnlyList<string> Errors);

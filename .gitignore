@@ -36,3 +36,5 @@ SUMMARIZE.md
 progress-tracker.md
 scripts/show-progress.mjs
 scripts/show_progress.py
+*.tsbuildinfo
+
