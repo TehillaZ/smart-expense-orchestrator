@@ -1,6 +1,7 @@
 using System.Net;
 using Dapr.Client;
 using IntakeService.Models;
+using Microsoft.Extensions.Logging;
 
 namespace IntakeService.Services;
 

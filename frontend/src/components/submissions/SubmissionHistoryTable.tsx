@@ -103,6 +103,12 @@ export function SubmissionHistoryTable({
           <tbody className="divide-y divide-slate-100 bg-white">
             {isLoading ? (
               <tr>
+                <td colSpan={4} className="px-6 py-10 text-center text-sm text-slate-500">
+                  Loading submission history…
+                </td>
+              </tr>
+            ) : submissions.length === 0 ? (
+              <tr>
                 <td colSpan={5} className="px-6 py-10 text-center text-sm text-slate-500">
                   Loading submission history…
                 </td>
