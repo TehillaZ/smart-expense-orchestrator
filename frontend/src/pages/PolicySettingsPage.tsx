@@ -176,6 +176,12 @@ export function PolicySettingsPage() {
                 {settings?.policyVersion ?? '—'}
               </div>
 
+              <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+                Category rules, blocked vendors, and keyword filters are enforced by the approval
+                engine in this demo. Runtime tuning here covers autonomy ceiling and AI confidence
+                only — no redeploy required for those thresholds.
+              </div>
+
               <div>
                 <label
                   htmlFor="autonomyCeiling"

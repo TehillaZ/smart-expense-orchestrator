@@ -31,6 +31,40 @@ public class DashboardMetricsProjectorTests
     }
 
     [Fact]
+    public void ApplySubmissionCreated_ResetsDailyCountOnNewUtcDay()
+    {
+        var yesterday = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-1))
+            .ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture);
+        var current = new DashboardMetrics(
+            TotalSubmissions: 3,
+            AutoApprovedCount: 0,
+            EscalatedCount: 0,
+            HumanApprovedCount: 0,
+            RejectedCount: 0,
+            PaidCount: 0,
+            PaymentFailedCount: 0,
+            AutoApprovedAmount: 0m,
+            HumanApprovedAmount: 0m,
+            SubmissionsTodayCount: 2,
+            SubmissionsTodayUtcDate: yesterday);
+
+        var updated = DashboardMetricsProjector.ApplyEvent(
+            current,
+            new MetricsRecordRequest(
+                "tracking-4",
+                "correlation-4",
+                MetricsEventTypes.SubmissionCreated,
+                "Received",
+                50m,
+                "Received",
+                "Acme Corp",
+                "INV-1004"));
+
+        Assert.Equal(4, updated.TotalSubmissions);
+        Assert.Equal(1, updated.SubmissionsTodayCount);
+    }
+
+    [Fact]
     public async Task ApplyEvent_IsIdempotentForDuplicateEvents()
     {
         var store = new InMemoryDashboardMetricsStore();

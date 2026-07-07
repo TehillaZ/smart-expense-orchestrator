@@ -9,9 +9,11 @@ public sealed record DashboardMetrics(
     int PaidCount,
     int PaymentFailedCount,
     decimal AutoApprovedAmount,
-    decimal HumanApprovedAmount)
+    decimal HumanApprovedAmount,
+    int SubmissionsTodayCount = 0,
+    string? SubmissionsTodayUtcDate = null)
 {
-    public static DashboardMetrics Empty { get; } = new(0, 0, 0, 0, 0, 0, 0, 0m, 0m);
+    public static DashboardMetrics Empty { get; } = new(0, 0, 0, 0, 0, 0, 0, 0m, 0m, 0, null);
 }
 
 public sealed record DashboardReadModel(

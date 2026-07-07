@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom'
 import type { SubmissionDetail } from '../../types/submission'
 import { useAppRole } from '../../hooks/useAppRole'
 import { canViewAuditTrail } from '../../types/userRole'
+import { getInfoRequestMessage, isInfoRequestedSubmission } from '../../utils/requestInfo'
 import { BackendStatusBadge } from './BackendStatusBadge'
 import { WorkflowStepper } from './WorkflowStepper'
 
@@ -26,6 +27,8 @@ export function SubmissionDetailPanel({
   const role = useAppRole()
   const showAuditLink = canViewAuditTrail(role)
   const backendStatus = detail.backendStatus ?? detail.status
+  const infoRequested = isInfoRequestedSubmission(detail)
+  const infoRequestMessage = getInfoRequestMessage(detail)
 
   return (
     <section className="rounded-xl border border-blue-200 bg-blue-50/40 p-6 shadow-sm">
@@ -33,6 +36,9 @@ export function SubmissionDetailPanel({
         <div>
           <h3 className="text-lg font-semibold text-slate-900">Submission Status</h3>
           <p className="mt-1 font-mono text-sm text-slate-600">{detail.trackingId}</p>
+          <p className="mt-1 font-mono text-xs text-slate-500">
+            Correlation: {detail.correlationId}
+          </p>
         </div>
         <button
           type="button"
@@ -45,8 +51,27 @@ export function SubmissionDetailPanel({
 
       {isDuplicateResubmit ? (
         <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-          This tracking id was returned from a duplicate resubmit. The original submission is
-          preserved and payment will not run again.
+          This tracking id was returned from a duplicate resubmit
+          {detail.duplicateResubmitCount && detail.duplicateResubmitCount > 1
+            ? ` (${detail.duplicateResubmitCount} times)`
+            : ''}
+          . The original submission is preserved and payment will not run again.
+        </div>
+      ) : null}
+
+      {infoRequested ? (
+        <div className="mt-4 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-950">
+          <p className="font-semibold">Action required from you</p>
+          <p className="mt-1">
+            Your approver requested more information before deciding on this expense.
+          </p>
+          <p className="mt-2 rounded-md border border-amber-200 bg-white px-3 py-2 text-slate-800">
+            {infoRequestMessage}
+          </p>
+          <p className="mt-2 text-xs text-amber-900">
+            Provide the requested detail to your approver outside this demo app. The submission
+            stays escalated until they approve or reject.
+          </p>
         </div>
       ) : null}
 

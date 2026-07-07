@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { EscalationDecisionDialog } from '../components/approvals/EscalationDecisionDialog'
+import { EscalationQueueFiltersBar } from '../components/approvals/EscalationQueueFiltersBar'
 import { EscalationQueueTable } from '../components/approvals/EscalationQueueTable'
 import { Toast } from '../components/ui/Toast'
 import { useAppRole } from '../hooks/useAppRole'
@@ -7,8 +8,14 @@ import { ApiRequestError } from '../services/apiClient'
 import { loadEscalationQueue, submitApprovalDecision } from '../services/approvalService'
 import type { ApprovalDecision, EscalationQueueItem } from '../types/api'
 import { canDecideEscalations } from '../types/userRole'
+import {
+  EMPTY_ESCALATION_QUEUE_FILTERS,
+  filterEscalationQueue,
+  type EscalationQueueFilters,
+} from '../utils/escalationQueueFilters'
 
 const REFRESH_INTERVAL_MS = 5000
+const HIGHLIGHT_DURATION_MS = 4000
 
 type ToastState = {
   message: string
@@ -24,11 +31,17 @@ export function ApprovalsQueuePage() {
   const role = useAppRole()
   const canDecide = canDecideEscalations(role)
   const [items, setItems] = useState<EscalationQueueItem[]>([])
+  const [filters, setFilters] = useState<EscalationQueueFilters>(EMPTY_ESCALATION_QUEUE_FILTERS)
   const [isLoading, setIsLoading] = useState(true)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [decidingTrackingId, setDecidingTrackingId] = useState<string | null>(null)
   const [pendingDecision, setPendingDecision] = useState<PendingDecision | null>(null)
   const [toast, setToast] = useState<ToastState | null>(null)
+  const [highlightedTrackingIds, setHighlightedTrackingIds] = useState<ReadonlySet<string>>(
+    () => new Set(),
+  )
+  const highlightTimeoutsRef = useRef<Map<string, number>>(new Map())
+  const filteredItems = useMemo(() => filterEscalationQueue(items, filters), [items, filters])
 
   const refreshQueue = useCallback(async (showLoading = false) => {
     if (showLoading) {
@@ -51,6 +64,26 @@ export function ApprovalsQueuePage() {
     }
   }, [])
 
+  const markRecentlyUpdated = useCallback((trackingId: string) => {
+    setHighlightedTrackingIds((current) => new Set([...current, trackingId]))
+
+    const existingTimeout = highlightTimeoutsRef.current.get(trackingId)
+    if (existingTimeout) {
+      window.clearTimeout(existingTimeout)
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      setHighlightedTrackingIds((current) => {
+        const next = new Set(current)
+        next.delete(trackingId)
+        return next
+      })
+      highlightTimeoutsRef.current.delete(trackingId)
+    }, HIGHLIGHT_DURATION_MS)
+
+    highlightTimeoutsRef.current.set(trackingId, timeoutId)
+  }, [])
+
   useEffect(() => {
     void refreshQueue(true)
 
@@ -58,7 +91,15 @@ export function ApprovalsQueuePage() {
       void refreshQueue(false)
     }, REFRESH_INTERVAL_MS)
 
-    return () => window.clearInterval(intervalId)
+    const highlightTimeouts = highlightTimeoutsRef.current
+
+    return () => {
+      window.clearInterval(intervalId)
+      for (const timeoutId of highlightTimeouts.values()) {
+        window.clearTimeout(timeoutId)
+      }
+      highlightTimeouts.clear()
+    }
   }, [refreshQueue])
 
   useEffect(() => {
@@ -66,7 +107,7 @@ export function ApprovalsQueuePage() {
       return undefined
     }
 
-    const timeoutId = window.setTimeout(() => setToast(null), 4000)
+    const timeoutId = window.setTimeout(() => setToast(null), 6000)
     return () => window.clearTimeout(timeoutId)
   }, [toast])
 
@@ -93,15 +134,22 @@ export function ApprovalsQueuePage() {
         comment: comment || undefined,
       })
 
-      const decisionLabel =
-        decision === 'RequestInfo'
-          ? 'sent back for more info'
-          : `${decision.toLowerCase()}d`
+      if (decision === 'RequestInfo') {
+        markRecentlyUpdated(item.trackingId)
+        const preview =
+          comment.length > 80 ? `${comment.slice(0, 80).trim()}…` : comment.trim()
 
-      setToast({
-        message: `Expense ${decisionLabel}. Status: ${response.status}.`,
-        variant: 'success',
-      })
+        setToast({
+          message: `Info requested. Escalation reason updated. Submitter will see: "${preview}" Recorded in audit trail.`,
+          variant: 'success',
+        })
+      } else {
+        const decisionLabel = `${decision.toLowerCase()}d`
+        setToast({
+          message: `Expense ${decisionLabel}. Status: ${response.status}.`,
+          variant: 'success',
+        })
+      }
 
       setPendingDecision(null)
       await refreshQueue(false)
@@ -161,13 +209,22 @@ export function ApprovalsQueuePage() {
           </button>
         </div>
 
+        <EscalationQueueFiltersBar
+          filters={filters}
+          onChange={setFilters}
+          onReset={() => setFilters(EMPTY_ESCALATION_QUEUE_FILTERS)}
+          resultCount={filteredItems.length}
+          totalCount={items.length}
+        />
+
         <EscalationQueueTable
-          items={items}
+          items={filteredItems}
           isLoading={isLoading}
           errorMessage={errorMessage}
           onRetry={() => void refreshQueue(true)}
           canDecide={canDecide}
           decidingTrackingId={decidingTrackingId}
+          highlightedTrackingIds={highlightedTrackingIds}
           onRequestDecision={handleRequestDecision}
         />
       </div>

@@ -1,4 +1,6 @@
 import type { SubmissionRecord } from '../../types/submission'
+import { isInfoRequestedSubmission } from '../../utils/requestInfo'
+import { MobileDataCard, MobileDataList, MobileDataRow } from '../ui/MobileDataCard'
 import { BackendStatusBadge } from './BackendStatusBadge'
 import { StatusBadge } from './StatusBadge'
 
@@ -18,6 +20,64 @@ function formatAmount(amount: number): string {
   }).format(amount)
 }
 
+function SubmissionStatusBadge({ submission }: { submission: SubmissionRecord }) {
+  if (submission.backendStatus) {
+    return <BackendStatusBadge status={submission.backendStatus} />
+  }
+
+  return <StatusBadge status={submission.status} />
+}
+
+type SubmissionHistoryCardProps = {
+  submission: SubmissionRecord
+  isSelected: boolean
+  onSelect?: (trackingId: string) => void
+}
+
+function SubmissionHistoryCard({ submission, isSelected, onSelect }: SubmissionHistoryCardProps) {
+  return (
+    <MobileDataCard
+      className={isSelected ? 'border-blue-300 bg-blue-50/70' : ''}
+      onClick={() => onSelect?.(submission.trackingId)}
+    >
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="break-all font-mono text-sm font-semibold text-slate-900">
+            {submission.trackingId}
+          </p>
+          {submission.isDuplicateResubmit ? (
+            <span className="mt-1 inline-flex rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-blue-700 ring-1 ring-inset ring-blue-700/10">
+              Already Submitted
+              {(submission.duplicateResubmitCount ?? 0) > 1
+                ? ` ×${submission.duplicateResubmitCount}`
+                : ''}
+            </span>
+          ) : null}
+        </div>
+        <SubmissionStatusBadge submission={submission} />
+      </div>
+
+      <MobileDataList className="mt-4">
+        <MobileDataRow label="Vendor" value={submission.vendor} />
+        <MobileDataRow label="Amount" value={formatAmount(submission.amount)} />
+        <MobileDataRow
+          label="Reason"
+          value={
+            <div>
+              {isInfoRequestedSubmission(submission) ? (
+                <span className="mb-1 inline-flex rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-900 ring-1 ring-inset ring-amber-200">
+                  Info requested
+                </span>
+              ) : null}
+              <p>{submission.reason ?? '—'}</p>
+            </div>
+          }
+        />
+      </MobileDataList>
+    </MobileDataCard>
+  )
+}
+
 export function SubmissionHistoryTable({
   submissions,
   isLoading = false,
@@ -28,12 +88,12 @@ export function SubmissionHistoryTable({
 }: SubmissionHistoryTableProps) {
   return (
     <section className="rounded-xl border border-slate-200 bg-white shadow-sm">
-      <div className="border-b border-slate-200 px-6 py-5">
+      <div className="border-b border-slate-200 px-4 py-4 sm:px-6 sm:py-5">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <h2 className="text-lg font-semibold text-slate-900">Submission History</h2>
             <p className="mt-1 text-sm text-slate-500">
-              Click a row to view the plain-language reason and workflow progress. Updates
+              Tap a row to view the plain-language reason and workflow progress. Updates
               automatically every few seconds.
             </p>
           </div>
@@ -50,7 +110,7 @@ export function SubmissionHistoryTable({
       </div>
 
       {errorMessage ? (
-        <div className="mx-6 mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+        <div className="mx-4 mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 sm:mx-6">
           <p>{errorMessage}</p>
           {onRetry ? (
             <button
@@ -64,103 +124,114 @@ export function SubmissionHistoryTable({
         </div>
       ) : null}
 
-      <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-slate-200">
-          <thead className="bg-slate-50">
-            <tr>
-              <th
-                scope="col"
-                className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500"
-              >
-                Tracking ID
-              </th>
-              <th
-                scope="col"
-                className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500"
-              >
-                Vendor
-              </th>
-              <th
-                scope="col"
-                className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500"
-              >
-                Amount
-              </th>
-              <th
-                scope="col"
-                className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500"
-              >
-                Status
-              </th>
-              <th
-                scope="col"
-                className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500"
-              >
-                Reason
-              </th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100 bg-white">
-            {isLoading ? (
-              <tr>
-                <td colSpan={5} className="px-6 py-10 text-center text-sm text-slate-500">
-                  Loading submission history…
-                </td>
-              </tr>
-            ) : submissions.length === 0 ? (
-              <tr>
-                <td colSpan={5} className="px-6 py-10 text-center text-sm text-slate-500">
-                  No submissions yet. Submit your first expense to get started.
-                </td>
-              </tr>
-            ) : (
-              submissions.map((submission) => {
-                const isSelected = selectedTrackingId === submission.trackingId
+      {isLoading ? (
+        <p className="px-4 py-10 text-center text-sm text-slate-500 sm:px-6">
+          Loading submission history…
+        </p>
+      ) : submissions.length === 0 ? (
+        <p className="px-4 py-10 text-center text-sm text-slate-500 sm:px-6">
+          No submissions yet. Submit your first expense to get started.
+        </p>
+      ) : (
+        <>
+          <div className="space-y-3 p-4 md:hidden">
+            {submissions.map((submission) => (
+              <SubmissionHistoryCard
+                key={submission.trackingId}
+                submission={submission}
+                isSelected={selectedTrackingId === submission.trackingId}
+                onSelect={onSelect}
+              />
+            ))}
+          </div>
 
-                return (
-                  <tr
-                    key={submission.trackingId}
-                    className={[
-                      'cursor-pointer transition-colors hover:bg-slate-50',
-                      isSelected ? 'bg-blue-50/70' : '',
-                    ].join(' ')}
-                    onClick={() => onSelect?.(submission.trackingId)}
+          <div className="hidden overflow-x-auto md:block">
+            <table className="min-w-full divide-y divide-slate-200">
+              <thead className="bg-slate-50">
+                <tr>
+                  <th
+                    scope="col"
+                    className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500 sm:px-6"
                   >
-                    <td className="whitespace-nowrap px-6 py-4">
-                      <p className="font-mono text-sm font-medium text-slate-900">
-                        {submission.trackingId}
-                      </p>
-                      {submission.isDuplicateResubmit ? (
-                        <span className="mt-1 inline-flex rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-blue-700 ring-1 ring-inset ring-blue-700/10">
-                        Already Submitted
-                        </span>
-                      ) : null}
-                    </td>
-                    <td className="whitespace-nowrap px-6 py-4 text-sm text-slate-700">
-                      {submission.vendor}
-                    </td>
-                    <td className="whitespace-nowrap px-6 py-4 text-sm font-medium text-slate-900">
-                      {formatAmount(submission.amount)}
-                    </td>
-                    <td className="whitespace-nowrap px-6 py-4">
-                      <div className="flex flex-col gap-1">
-                        {submission.backendStatus ? (
-                          <BackendStatusBadge status={submission.backendStatus} />
-                        ) : (
-                          <StatusBadge status={submission.status} />
-                        )}
-                      </div>
-                    </td>
-                    <td className="max-w-xs px-6 py-4 text-sm text-slate-600">
-                      {submission.reason ?? '—'}
-                    </td>
-                  </tr>
-                )
-              })
-            )}
-          </tbody>
-        </table>
-      </div>
+                    Tracking ID
+                  </th>
+                  <th
+                    scope="col"
+                    className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500 sm:px-6"
+                  >
+                    Vendor
+                  </th>
+                  <th
+                    scope="col"
+                    className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500 sm:px-6"
+                  >
+                    Amount
+                  </th>
+                  <th
+                    scope="col"
+                    className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500 sm:px-6"
+                  >
+                    Status
+                  </th>
+                  <th
+                    scope="col"
+                    className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500 sm:px-6"
+                  >
+                    Reason
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 bg-white">
+                {submissions.map((submission) => {
+                  const isSelected = selectedTrackingId === submission.trackingId
+
+                  return (
+                    <tr
+                      key={submission.trackingId}
+                      className={[
+                        'cursor-pointer transition-colors hover:bg-slate-50',
+                        isSelected ? 'bg-blue-50/70' : '',
+                      ].join(' ')}
+                      onClick={() => onSelect?.(submission.trackingId)}
+                    >
+                      <td className="px-4 py-4 sm:px-6">
+                        <p className="break-all font-mono text-sm font-medium text-slate-900">
+                          {submission.trackingId}
+                        </p>
+                        {submission.isDuplicateResubmit ? (
+                          <span className="mt-1 inline-flex rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-blue-700 ring-1 ring-inset ring-blue-700/10">
+                            Already Submitted
+                            {(submission.duplicateResubmitCount ?? 0) > 1
+                              ? ` ×${submission.duplicateResubmitCount}`
+                              : ''}
+                          </span>
+                        ) : null}
+                      </td>
+                      <td className="px-4 py-4 text-sm text-slate-700 sm:px-6">
+                        {submission.vendor}
+                      </td>
+                      <td className="whitespace-nowrap px-4 py-4 text-sm font-medium text-slate-900 sm:px-6">
+                        {formatAmount(submission.amount)}
+                      </td>
+                      <td className="whitespace-nowrap px-4 py-4 sm:px-6">
+                        <SubmissionStatusBadge submission={submission} />
+                      </td>
+                      <td className="max-w-xs px-4 py-4 text-sm text-slate-600 sm:px-6">
+                        {isInfoRequestedSubmission(submission) ? (
+                          <span className="mb-1 inline-flex rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-900 ring-1 ring-inset ring-amber-200">
+                            Info requested
+                          </span>
+                        ) : null}
+                        <p>{submission.reason ?? '—'}</p>
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        </>
+      )}
     </section>
   )
 }

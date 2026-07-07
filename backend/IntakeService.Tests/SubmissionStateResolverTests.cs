@@ -42,6 +42,43 @@ public class SubmissionStateResolverTests
     }
 
     [Fact]
+    public void Resolve_PreservesDuplicateResubmitCountFromIntakeState()
+    {
+        var local = new SubmissionStatusResponse(
+            "tracking-1",
+            "correlation-1",
+            "Acme Corp",
+            "INV-1001",
+            100m,
+            "Meals",
+            WorkflowStatuses.Received,
+            "Invoice received and is pending analysis.",
+            DuplicateResubmitCount: 2);
+
+        var workflow = new SubmissionStatusResponse(
+            "tracking-1",
+            "correlation-1",
+            "Acme Corp",
+            "INV-1001",
+            100m,
+            "Meals",
+            WorkflowStatuses.Paid,
+            "Payment of $100.00 completed successfully.",
+            "Escalate",
+            0.91m,
+            ["AUTONOMY-CEILING"],
+            "v1",
+            HumanDecision: "Approve",
+            HumanDecisionComment: "Approved.");
+
+        var resolved = SubmissionStateResolver.Resolve(local, workflow);
+
+        Assert.NotNull(resolved);
+        Assert.Equal(WorkflowStatuses.Paid, resolved!.Status);
+        Assert.Equal(2, resolved.DuplicateResubmitCount);
+    }
+
+    [Fact]
     public void ToRecentActivityFields_UsesHumanDecisionForPaidSubmission()
     {
         var submission = new SubmissionStatusResponse(

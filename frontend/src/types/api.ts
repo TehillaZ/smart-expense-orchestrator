@@ -24,6 +24,9 @@ export type SubmissionStatusResponse = {
   aiConfidence?: number | null
   citedRules?: string[] | null
   policyVersion?: string | null
+  humanDecision?: string | null
+  humanDecisionComment?: string | null
+  duplicateResubmitCount?: number
 }
 
 export type ValidationErrorResponse = {
@@ -51,6 +54,8 @@ export type EscalationQueueItem = {
   confidence: number
   citedRules: string[]
   reason: string
+  humanDecision?: string | null
+  humanDecisionComment?: string | null
 }
 
 export type ApprovalDecision = 'Approve' | 'Reject' | 'RequestInfo'
@@ -140,7 +145,25 @@ export type ReportingSummaryResponse = {
   humanApprovedAmount: number
   autoApprovalRate: number
   escalationRate: number
+  submissionsTodayCount: number
   recentActivity: RecentActivityItem[]
+}
+
+export type AutoApprovalComplianceItem = {
+  trackingId: string
+  invoiceNumber: string
+  vendor: string
+  amount: number
+  withinCeiling: boolean
+  isViolation: boolean
+}
+
+export type ComplianceReportResponse = {
+  autonomyCeiling: number
+  policyVersion: string
+  autoApprovedReviewedCount: number
+  violationCount: number
+  autoApprovedItems: AutoApprovalComplianceItem[]
 }
 
 export type ApiErrorBody = {

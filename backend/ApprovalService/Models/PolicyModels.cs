@@ -33,4 +33,6 @@ public sealed record EscalationQueueItem(
     string AiRecommendation,
     decimal Confidence,
     IReadOnlyList<string> CitedRules,
-    string Reason);
+    string Reason,
+    string? HumanDecision = null,
+    string? HumanDecisionComment = null);
