@@ -6,6 +6,8 @@ services:
       dockerfile: backend/ApiGateway/Dockerfile
     ports:
       - "8080:8080"
+    environment:
+      Jwt__SigningKey: ${JWT_SIGNING_KEY:-docker-dev-signing-key-min-32-chars}
     depends_on:
       intakeservice:
         condition: service_healthy

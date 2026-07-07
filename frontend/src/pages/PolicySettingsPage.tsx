@@ -208,10 +208,10 @@ export function PolicySettingsPage() {
   if (!canManagePolicy(role)) {
     return (
       <section className="rounded-xl border border-amber-200 bg-amber-50 p-6 shadow-sm">
-        <h2 className="text-xl font-semibold text-amber-900">Controller access required</h2>
+        <h2 className="text-xl font-semibold text-amber-900">Admin access required</h2>
         <p className="mt-2 text-sm text-amber-800">
-          Policy settings are available only to the Controller role. Switch roles using the
-          selector in the top bar.
+          Policy settings are available only to the Admin role. Sign in with an Admin account to
+          continue.
         </p>
       </section>
     )

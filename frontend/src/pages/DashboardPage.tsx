@@ -3,11 +3,9 @@ import { Link } from 'react-router-dom'
 import { DashboardCompliancePanel } from '../components/dashboard/DashboardCompliancePanel'
 import { DashboardOperationsChart } from '../components/dashboard/DashboardOperationsChart'
 import { MobileDataCard, MobileDataList, MobileDataRow } from '../components/ui/MobileDataCard'
-import { useAppRole } from '../hooks/useAppRole'
 import { ApiRequestError } from '../services/apiClient'
 import { loadComplianceReport, loadReportingSummary } from '../services/reportService'
 import type { ComplianceReportResponse, ReportingSummaryResponse } from '../types/api'
-import { isDashboardReadOnly } from '../types/userRole'
 
 function formatCurrency(amount: number): string {
   return new Intl.NumberFormat('en-US', {
@@ -53,8 +51,6 @@ function MetricCard({ label, value, hint }: MetricCardProps) {
 }
 
 export function DashboardPage() {
-  const role = useAppRole()
-  const readOnly = isDashboardReadOnly(role)
   const [summary, setSummary] = useState<ReportingSummaryResponse | null>(null)
   const [compliance, setCompliance] = useState<ComplianceReportResponse | null>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -105,13 +101,6 @@ export function DashboardPage() {
           Refresh
         </button>
       </div>
-
-      {readOnly ? (
-        <div className="rounded-lg border border-slate-200 bg-slate-100 px-4 py-3 text-sm text-slate-700">
-          Auditor view: metrics are read-only. Use the audit trail to inspect individual
-          submissions.
-        </div>
-      ) : null}
 
       {errorMessage ? (
         <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">

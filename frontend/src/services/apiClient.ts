@@ -1,5 +1,7 @@
 import type { ApiErrorBody } from '../types/api'
 
+import { getAuthToken } from './authService'
+
 export class ApiRequestError extends Error {
   readonly status: number
   readonly details?: string[]
@@ -43,10 +45,12 @@ export async function parseJsonResponse<T>(response: Response): Promise<T> {
 
 export async function requestJson<T>(url: string, init?: RequestInit): Promise<T> {
   try {
+    const authToken = getAuthToken()
     const response = await fetch(url, {
       ...init,
       headers: {
         Accept: 'application/json',
+        ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
         ...init?.headers,
       },
     })

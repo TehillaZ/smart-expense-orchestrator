@@ -1,4 +1,4 @@
-export const USER_ROLES = ['Submitter', 'Approver', 'Controller', 'Auditor'] as const
+export const USER_ROLES = ['Submitter', 'Approver', 'Admin'] as const
 
 export type UserRole = (typeof USER_ROLES)[number]
 
@@ -12,9 +12,9 @@ export const NAV_ITEMS: readonly NavItem[] = [
   { label: 'Submit', to: '/submissions', roles: ['Submitter'] },
   { label: 'Track', to: '/track', roles: ['Submitter'] },
   { label: 'Approvals', to: '/approvals', roles: ['Approver'] },
-  { label: 'Dashboard', to: '/dashboard', roles: ['Controller', 'Auditor'] },
-  { label: 'Audit Trail', to: '/audit', roles: ['Controller', 'Auditor'] },
-  { label: 'Policy', to: '/policy', roles: ['Controller'] },
+  { label: 'Dashboard', to: '/dashboard', roles: ['Admin'] },
+  { label: 'Audit Trail', to: '/audit', roles: ['Admin'] },
+  { label: 'Policy', to: '/policy', roles: ['Admin'] },
 ] as const
 
 export function isUserRole(value: string): value is UserRole {
@@ -46,15 +46,15 @@ export function canAccessPath(role: UserRole, pathname: string): boolean {
   }
 
   if (path === '/dashboard') {
-    return role === 'Controller' || role === 'Auditor'
+    return role === 'Admin'
   }
 
   if (path === '/audit' || path.startsWith('/audit/')) {
-    return role === 'Controller' || role === 'Auditor'
+    return role === 'Admin'
   }
 
   if (path === '/policy') {
-    return role === 'Controller'
+    return role === 'Admin'
   }
 
   return false
@@ -74,15 +74,15 @@ export function canDecideEscalations(role: UserRole): boolean {
 }
 
 export function canManagePolicy(role: UserRole): boolean {
-  return role === 'Controller'
+  return role === 'Admin'
 }
 
-export function isDashboardReadOnly(role: UserRole): boolean {
-  return role === 'Auditor'
+export function isDashboardReadOnly(_role: UserRole): boolean {
+  return false
 }
 
 export function canViewAuditTrail(role: UserRole): boolean {
-  return role === 'Controller' || role === 'Auditor'
+  return role === 'Admin'
 }
 
 export function getRoleDescription(role: UserRole): string {
@@ -91,10 +91,8 @@ export function getRoleDescription(role: UserRole): string {
       return 'Submit expenses and track approval outcomes.'
     case 'Approver':
       return 'Review escalated expenses and approve, reject, or request more info.'
-    case 'Controller':
-      return 'Configure policy thresholds and monitor approval operations.'
-    case 'Auditor':
-      return 'Inspect audit trails and verify autonomy limit compliance.'
+    case 'Admin':
+      return 'Configure policy thresholds, monitor operations, and inspect audit trails.'
     default: {
       const _exhaustive: never = role
       return _exhaustive

@@ -13,6 +13,10 @@ export default defineConfig({
   },
   server: {
     proxy: {
+      '/auth': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+      },
       '/submissions': {
         target: 'http://localhost:8080',
         changeOrigin: true,
