@@ -107,6 +107,7 @@ function toSubmissionDetail(
     aiConfidence: intake.aiConfidence,
     citedRules: intake.citedRules ?? undefined,
     policyVersion: intake.policyVersion,
+    autonomyCeilingAtDecision: intake.autonomyCeilingAtDecision,
   }
 }
 

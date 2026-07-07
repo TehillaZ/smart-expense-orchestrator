@@ -1,8 +1,8 @@
-import type { AuditTrailResponse, PolicySettings } from '../../types/api'
+import type { AuditTrailResponse } from '../../types/api'
 
 type PolicyCompliancePanelProps = {
   audit: AuditTrailResponse
-  policy: PolicySettings
+  currentAutonomyCeiling?: number | null
 }
 
 function formatCurrency(amount: number): string {
@@ -24,34 +24,44 @@ function hasCeilingRule(audit: AuditTrailResponse): boolean {
   return audit.rulesApplied.some((rule) => rule.toUpperCase() === 'AUTONOMY-CEILING')
 }
 
-export function PolicyCompliancePanel({ audit, policy }: PolicyCompliancePanelProps) {
+export function PolicyCompliancePanel({
+  audit,
+  currentAutonomyCeiling = null,
+}: PolicyCompliancePanelProps) {
   const amount = audit.invoice.amount
-  const ceiling = policy.autonomyCeiling
+  const ceiling =
+    audit.autonomyCeilingAtDecision ??
+    currentAutonomyCeiling ??
+    null
   const autoApproved = wasAutoApproved(audit)
   const escalatedForCeiling = hasCeilingRule(audit)
-  const withinCeiling = amount <= ceiling
+  const withinCeiling = ceiling != null ? amount <= ceiling : null
 
   let tone: 'success' | 'warning' | 'danger' = 'success'
   let title = 'Policy limit compliance'
   let message =
     'This item was processed under the configured autonomy rules. Review amount versus ceiling below.'
 
-  if (autoApproved && withinCeiling) {
+  if (ceiling == null) {
+    tone = 'warning'
+    message =
+      'Autonomy ceiling at decision time was not recorded. Compare the submission amount against the policy version shown below.'
+  } else if (autoApproved && withinCeiling) {
     tone = 'success'
     title = 'Compliance verified — auto-approved within limit'
-    message = `Auto-approval is allowed because ${formatCurrency(amount)} is at or below the configured ceiling of ${formatCurrency(ceiling)}. The deterministic policy engine made the final decision.`
+    message = `Auto-approval is allowed because ${formatCurrency(amount)} is at or below the autonomy ceiling of ${formatCurrency(ceiling)} that applied at decision time (${audit.policyVersion}). The deterministic policy engine made the final decision.`
   } else if (autoApproved && !withinCeiling) {
     tone = 'danger'
     title = 'Policy violation — auto-approved above ceiling'
-    message = `This submission was auto-approved at ${formatCurrency(amount)} even though the ceiling is ${formatCurrency(ceiling)}. This should not happen and requires investigation.`
+    message = `This submission was auto-approved at ${formatCurrency(amount)} even though the ceiling at decision time was ${formatCurrency(ceiling)}. This should not happen and requires investigation.`
   } else if (escalatedForCeiling) {
     tone = 'success'
     title = 'Compliance verified — escalated above ceiling'
-    message = `Amount ${formatCurrency(amount)} exceeded the autonomy ceiling of ${formatCurrency(ceiling)}. The AUTONOMY-CEILING rule applied and the item was escalated instead of auto-approved.`
-  } else if (!autoApproved && !withinCeiling) {
+    message = `Amount ${formatCurrency(amount)} exceeded the autonomy ceiling of ${formatCurrency(ceiling)} at decision time. The AUTONOMY-CEILING rule applied and the item was escalated instead of auto-approved.`
+  } else if (!autoApproved && withinCeiling === false) {
     tone = 'warning'
     title = 'Human or policy review above ceiling'
-    message = `Amount ${formatCurrency(amount)} is above the ceiling of ${formatCurrency(ceiling)}. Confirm the final decision trail shows escalation or human approval rather than autonomous approval.`
+    message = `Amount ${formatCurrency(amount)} is above the ceiling of ${formatCurrency(ceiling)} at decision time. Confirm the final decision trail shows escalation or human approval rather than autonomous approval.`
   }
 
   const toneStyles = {
@@ -70,8 +80,10 @@ export function PolicyCompliancePanel({ audit, policy }: PolicyCompliancePanelPr
           <dd className="text-lg font-semibold">{formatCurrency(amount)}</dd>
         </div>
         <div>
-          <dt className="font-medium opacity-80">Autonomy ceiling</dt>
-          <dd className="text-lg font-semibold">{formatCurrency(ceiling)}</dd>
+          <dt className="font-medium opacity-80">Ceiling at decision</dt>
+          <dd className="text-lg font-semibold">
+            {ceiling != null ? formatCurrency(ceiling) : '—'}
+          </dd>
         </div>
         <div>
           <dt className="font-medium opacity-80">Policy version</dt>

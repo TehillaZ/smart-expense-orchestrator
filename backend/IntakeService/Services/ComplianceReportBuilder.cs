@@ -6,19 +6,19 @@ public static class ComplianceReportBuilder
 {
     public static ComplianceReportResponse Build(
         IReadOnlyList<SubmissionStatusResponse> submissions,
-        decimal autonomyCeiling,
-        string policyVersion)
+        decimal fallbackAutonomyCeiling,
+        string currentPolicyVersion)
     {
         var autoApprovedItems = submissions
             .Where(WasAutoApproved)
-            .Select(submission => ToComplianceItem(submission, autonomyCeiling))
+            .Select(submission => ToComplianceItem(submission, fallbackAutonomyCeiling))
             .OrderByDescending(item => item.IsViolation)
             .ThenByDescending(item => item.Amount)
             .ToArray();
 
         return new ComplianceReportResponse(
-            autonomyCeiling,
-            policyVersion,
+            fallbackAutonomyCeiling,
+            currentPolicyVersion,
             autoApprovedItems.Length,
             autoApprovedItems.Count(item => item.IsViolation),
             autoApprovedItems);
@@ -26,9 +26,10 @@ public static class ComplianceReportBuilder
 
     private static AutoApprovalComplianceItem ToComplianceItem(
         SubmissionStatusResponse submission,
-        decimal autonomyCeiling)
+        decimal fallbackAutonomyCeiling)
     {
-        var withinCeiling = submission.Amount <= autonomyCeiling;
+        var ceiling = submission.AutonomyCeilingAtDecision ?? fallbackAutonomyCeiling;
+        var withinCeiling = submission.Amount <= ceiling;
 
         return new AutoApprovalComplianceItem(
             submission.TrackingId,

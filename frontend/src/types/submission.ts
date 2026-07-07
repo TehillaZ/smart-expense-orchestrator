@@ -36,6 +36,7 @@ export type SubmissionDetail = SubmissionRecord & {
   aiConfidence?: number | null
   citedRules?: string[]
   policyVersion?: string | null
+  autonomyCeilingAtDecision?: number | null
 }
 
 export type SubmitExpenseFormData = {

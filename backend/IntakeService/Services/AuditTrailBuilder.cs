@@ -23,6 +23,7 @@ public static class AuditTrailBuilder
                 submission.Amount,
                 submission.Category),
             submission.PolicyVersion ?? "v1",
+            submission.AutonomyCeilingAtDecision,
             rules,
             new AuditAiSnapshot(
                 submission.AiRecommendation,

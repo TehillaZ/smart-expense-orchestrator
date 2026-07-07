@@ -36,6 +36,7 @@ public sealed record AuditTrailResponse(
     string CorrelationId,
     AuditInvoiceSnapshot Invoice,
     string PolicyVersion,
+    decimal? AutonomyCeilingAtDecision,
     IReadOnlyList<string> RulesApplied,
     AuditAiSnapshot Ai,
     AuditHumanDecisionSnapshot? HumanDecision,
