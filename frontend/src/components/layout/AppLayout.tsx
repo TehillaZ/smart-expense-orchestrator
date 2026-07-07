@@ -1,24 +1,14 @@
 import { useEffect, useState } from 'react'
-import { Outlet, useLocation, useNavigate } from 'react-router-dom'
-import {
-  canAccessPath,
-  getDefaultRoute,
-  type UserRole,
-} from '../../types/userRole'
+import { Outlet } from 'react-router-dom'
+import { useAuth } from '../../contexts/AuthContext'
+import { useAppRole } from '../../hooks/useAppRole'
 import { Sidebar } from './Sidebar'
 import { TopNavbar } from './TopNavbar'
 
 export function AppLayout() {
-  const [role, setRole] = useState<UserRole>('Submitter')
+  const role = useAppRole()
+  const { logout } = useAuth()
   const [isSidebarOpen, setIsSidebarOpen] = useState(true)
-  const location = useLocation()
-  const navigate = useNavigate()
-
-  useEffect(() => {
-    if (!canAccessPath(role, location.pathname)) {
-      navigate(getDefaultRoute(role), { replace: true })
-    }
-  }, [role, location.pathname, navigate])
 
   useEffect(() => {
     if (window.matchMedia('(max-width: 1023px)').matches) {
@@ -36,7 +26,7 @@ export function AppLayout() {
       <div className="flex min-w-0 flex-1 flex-col">
         <TopNavbar
           role={role}
-          onRoleChange={setRole}
+          onLogout={logout}
           isSidebarOpen={isSidebarOpen}
           onOpenSidebar={() => setIsSidebarOpen(true)}
         />

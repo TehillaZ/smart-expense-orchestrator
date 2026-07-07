@@ -1,5 +1,7 @@
 const gatewayBaseUrl = import.meta.env.VITE_API_GATEWAY_URL ?? ''
 
+export const API_BASE_URL = gatewayBaseUrl
+
 export const API_ENDPOINTS = {
   submissions: `${gatewayBaseUrl}/submissions`,
   submissionById: (trackingId: string) => `${gatewayBaseUrl}/submissions/${trackingId}`,
