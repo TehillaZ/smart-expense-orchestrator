@@ -11,5 +11,5 @@ export const API_ENDPOINTS = {
   reportsSummary: `${gatewayBaseUrl}/reports/summary`,
   reportsCompliance: `${gatewayBaseUrl}/reports/compliance`,
   notificationById: (trackingId: string) =>
-    `${import.meta.env.VITE_NOTIFICATION_SERVICE_URL ?? ''}/notifications/${trackingId}`,
+    `${gatewayBaseUrl}/notifications/${trackingId}`,
 } as const

@@ -4,6 +4,8 @@ using IntakeService.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.Logging.AddJsonConsole(options => options.IncludeScopes = true);
+
 builder.Services.AddDaprClient();
 builder.Services.AddSingleton<ISubmissionStore, DaprSubmissionStore>();
 builder.Services.AddSingleton<IDashboardMetricsStore, DaprDashboardMetricsStore>();

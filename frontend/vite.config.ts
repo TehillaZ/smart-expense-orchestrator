@@ -34,7 +34,7 @@ export default defineConfig({
         changeOrigin: true,
       },
       '/notifications': {
-        target: 'http://localhost:5004',
+        target: 'http://localhost:8080',
         changeOrigin: true,
       },
     },

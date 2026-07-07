@@ -24,6 +24,7 @@ export type SubmissionStatusResponse = {
   aiConfidence?: number | null
   citedRules?: string[] | null
   policyVersion?: string | null
+  autonomyCeilingAtDecision?: number | null
   humanDecision?: string | null
   humanDecisionComment?: string | null
   duplicateResubmitCount?: number

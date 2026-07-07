@@ -31,12 +31,6 @@ jobs:
       - name: Test solution
         run: dotnet test backend/ApprovalFlow.sln --no-build --configuration Release --verbosity normal
 
-      - name: Build API Gateway
-        run: dotnet build backend/ApiGateway/ApiGateway.csproj --configuration Release
-
-      - name: Test API Gateway
-        run: dotnet test backend/ApiGateway.Tests/ApiGateway.Tests.csproj --configuration Release --verbosity normal
-
   frontend:
     name: Frontend lint, test, and build
     runs-on: ubuntu-latest
@@ -76,3 +70,6 @@ jobs:
 
       - name: Validate compose file
         run: docker compose -f infra/docker-compose.yml config
+
+      - name: Build compose images
+        run: docker compose -f infra/docker-compose.yml build

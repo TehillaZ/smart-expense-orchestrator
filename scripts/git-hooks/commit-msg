@@ -1,0 +1,67 @@
+#!/bin/sh
+#
+# commit-msg hook: enforce lowercase Conventional Commits (feat:, fix:, test:, docs:, chore:).
+# Installed by scripts/install-git-hooks.ps1 into .git/hooks/commit-msg
+
+commit_msg_file="$1"
+
+if [ ! -f "$commit_msg_file" ]; then
+  echo "ERROR: Commit message file not found."
+  exit 1
+fi
+
+# First non-empty, non-comment line is the subject.
+subject="$(sed -e '/^[[:space:]]*#/d' -e '/^[[:space:]]*$/d' "$commit_msg_file" | head -n 1)"
+
+if [ -z "$subject" ]; then
+  echo "ERROR: Commit message is empty."
+  exit 1
+fi
+
+# Reject capitalized type prefixes.
+case "$subject" in
+  Feat:*|Fix:*|Test:*|Docs:*|Chore:*)
+    echo "ERROR: Commit prefix must be lowercase (feat:, fix:, test:, docs:, chore:)."
+    echo "Rejected: $subject"
+    exit 1
+    ;;
+esac
+
+# Reject ALL-CAPS prefixes.
+case "$subject" in
+  FEAT:*|FIX:*|TEST:*|DOCS:*|CHORE:*)
+    echo "ERROR: Commit prefix must be lowercase (feat:, fix:, test:, docs:, chore:)."
+    echo "Rejected: $subject"
+    exit 1
+    ;;
+esac
+
+# Reject slash-style prefixes such as Feat/ or feat/ at the start of the subject.
+if printf '%s' "$subject" | grep -Eq '^[A-Za-z]+/'; then
+  echo "ERROR: Slash-style commit prefixes are not allowed (e.g., Feat/ or feat/)."
+  echo "Rejected: $subject"
+  exit 1
+fi
+
+# Allow only the approved lowercase Conventional Commits prefixes with a description.
+case "$subject" in
+  feat:\ *|fix:\ *|test:\ *|docs:\ *|chore:\ *)
+    exit 0
+    ;;
+esac
+
+echo "ERROR: Commit message must follow lowercase Conventional Commits."
+echo ""
+echo "Allowed prefixes:"
+echo "  feat:"
+echo "  fix:"
+echo "  test:"
+echo "  docs:"
+echo "  chore:"
+echo ""
+echo "Example:"
+echo "  feat: add runtime policy configuration"
+echo ""
+echo "Rejected subject line:"
+echo "  $subject"
+exit 1

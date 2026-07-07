@@ -1,7 +1,10 @@
+using PaymentService.Middleware;
 using PaymentService.Routes;
 using PaymentService.Services;
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Logging.AddJsonConsole(options => options.IncludeScopes = true);
 
 builder.Services.Configure<PaymentSimulationOptions>(
     builder.Configuration.GetSection(PaymentSimulationOptions.SectionName));
@@ -22,6 +25,7 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 }
 
+app.UseMiddleware<CorrelationIdScopeMiddleware>();
 app.UseCloudEvents();
 
 app.MapHealthRoutes();

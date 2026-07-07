@@ -5,10 +5,12 @@ public sealed class CorrelationIdMiddleware
     public const string HeaderName = "X-Correlation-Id";
 
     private readonly RequestDelegate next;
+    private readonly ILogger<CorrelationIdMiddleware> logger;
 
-    public CorrelationIdMiddleware(RequestDelegate next)
+    public CorrelationIdMiddleware(RequestDelegate next, ILogger<CorrelationIdMiddleware> logger)
     {
         this.next = next;
+        this.logger = logger;
     }
 
     public async Task InvokeAsync(HttpContext context)
@@ -23,6 +25,12 @@ public sealed class CorrelationIdMiddleware
         context.Request.Headers[HeaderName] = correlationId;
         context.Response.Headers[HeaderName] = correlationId;
 
-        await next(context);
+        using (logger.BeginScope(new Dictionary<string, object>
+        {
+            ["CorrelationId"] = correlationId
+        }))
+        {
+            await next(context);
+        }
     }
 }

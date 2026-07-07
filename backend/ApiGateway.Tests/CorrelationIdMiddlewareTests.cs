@@ -1,5 +1,6 @@
 using ApiGateway.Middleware;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace ApiGateway.Tests;
 
@@ -12,11 +13,13 @@ public class CorrelationIdMiddlewareTests
         context.Response.Body = new MemoryStream();
         string? observedCorrelationId = null;
 
-        var middleware = new CorrelationIdMiddleware(next: ctx =>
-        {
-            observedCorrelationId = ctx.Request.Headers[CorrelationIdMiddleware.HeaderName].FirstOrDefault();
-            return Task.CompletedTask;
-        });
+        var middleware = new CorrelationIdMiddleware(
+            next: ctx =>
+            {
+                observedCorrelationId = ctx.Request.Headers[CorrelationIdMiddleware.HeaderName].FirstOrDefault();
+                return Task.CompletedTask;
+            },
+            logger: NullLogger<CorrelationIdMiddleware>.Instance);
 
         await middleware.InvokeAsync(context);
 
@@ -32,11 +35,13 @@ public class CorrelationIdMiddlewareTests
         context.Request.Headers[CorrelationIdMiddleware.HeaderName] = "existing-correlation-id";
         string? observedCorrelationId = null;
 
-        var middleware = new CorrelationIdMiddleware(next: ctx =>
-        {
-            observedCorrelationId = ctx.Request.Headers[CorrelationIdMiddleware.HeaderName].FirstOrDefault();
-            return Task.CompletedTask;
-        });
+        var middleware = new CorrelationIdMiddleware(
+            next: ctx =>
+            {
+                observedCorrelationId = ctx.Request.Headers[CorrelationIdMiddleware.HeaderName].FirstOrDefault();
+                return Task.CompletedTask;
+            },
+            logger: NullLogger<CorrelationIdMiddleware>.Instance);
 
         await middleware.InvokeAsync(context);
 

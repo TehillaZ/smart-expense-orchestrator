@@ -1,0 +1,56 @@
+#!/bin/sh
+#
+# Pre-commit hook: sync with origin/main before every commit to reduce merge conflicts.
+# Installed by scripts/install-git-hooks.ps1 into .git/hooks/pre-commit
+
+set -e
+
+echo "==> Pre-commit: syncing with origin/main before commit..."
+
+if ! git remote get-url origin >/dev/null 2>&1; then
+  echo "WARNING: No 'origin' remote configured. Skipping sync."
+  exit 0
+fi
+
+if ! git fetch origin main; then
+  echo "ERROR: git fetch origin main failed."
+  echo "Check your network connection and remote access, then try again."
+  exit 1
+fi
+
+branch="$(git rev-parse --abbrev-ref HEAD)"
+stashed=0
+
+# Stash unstaged changes so merge can proceed; keep staged changes in the index.
+if ! git diff --quiet; then
+  git stash push -q -m "pre-commit-hook-unstaged-$(date +%s)" --keep-index
+  stashed=1
+fi
+
+merge_failed=0
+if [ "$branch" = "main" ]; then
+  if ! git merge --ff-only origin/main; then
+    merge_failed=1
+  fi
+else
+  if ! git merge origin/main --no-edit; then
+    merge_failed=1
+  fi
+fi
+
+if [ "$stashed" -eq 1 ]; then
+  if ! git stash pop -q; then
+    echo "WARNING: Could not restore unstaged changes from stash."
+    echo "Run 'git stash list' and 'git stash pop' manually if needed."
+  fi
+fi
+
+if [ "$merge_failed" -eq 1 ]; then
+  echo ""
+  echo "ERROR: Failed to sync with origin/main."
+  echo "Resolve merge conflicts, complete the merge, then commit again."
+  exit 1
+fi
+
+echo "==> Sync with origin/main complete."
+exit 0

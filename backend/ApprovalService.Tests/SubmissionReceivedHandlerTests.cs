@@ -53,6 +53,27 @@ public class SubmissionReceivedHandlerTests
     }
 
     [Fact]
+    public async Task HandleAsync_WhenAiProviderThrows_EscalatesForHumanReview()
+    {
+        var store = new FakeSubmissionStateStore();
+        var settings = new FakePolicySettingsStore();
+        var processor = CreateProcessor(
+            store,
+            settings,
+            new FakePaymentRequestPublisher(),
+            new ThrowingInvoiceAiProvider());
+
+        await processor.ProcessAsync(SampleEvent());
+
+        Assert.NotNull(store.LastSaved);
+        Assert.Equal(ApprovalStatuses.Escalated, store.LastSaved!.Status);
+        Assert.Contains("Policy evaluation failed", store.LastSaved.Reason, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal("Escalate", store.LastSaved.AiRecommendation);
+        Assert.NotNull(store.LastSaved.CitedRules);
+        Assert.Contains("POLICY-ERROR", store.LastSaved.CitedRules);
+    }
+
+    [Fact]
     public async Task HandleAsync_WithAlreadyAutoApprovedSubmission_SkipsReprocessingAndRepublish()
     {
         var store = new FakeSubmissionStateStore();
@@ -85,15 +106,26 @@ public class SubmissionReceivedHandlerTests
     private static ApprovalWorkflowProcessor CreateProcessor(
         FakeSubmissionStateStore store,
         FakePolicySettingsStore settings,
-        FakePaymentRequestPublisher publisher)
+        FakePaymentRequestPublisher publisher,
+        IInvoiceAiProvider? aiProvider = null)
     {
         return new ApprovalWorkflowProcessor(
             store,
             settings,
-            new StubInvoiceAiProvider(),
+            aiProvider ?? new StubInvoiceAiProvider(),
             new PolicyEngine(),
             publisher,
             new NoOpMetricsRecorder(),
             NullLogger<ApprovalWorkflowProcessor>.Instance);
+    }
+
+    private sealed class ThrowingInvoiceAiProvider : IInvoiceAiProvider
+    {
+        public Task<AiRecommendationResult> GetRecommendationAsync(
+            SubmissionReceivedEvent submission,
+            CancellationToken cancellationToken = default)
+        {
+            throw new InvalidOperationException("Simulated LLM provider outage.");
+        }
     }
 }

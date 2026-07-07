@@ -134,6 +134,37 @@ internal sealed class JourneyHarness
             new ApprovalDecisionRequest("Approve", "Approved during journey test.", null));
     }
 
+    public Task<(ApprovalDecisionResponse? Response, IReadOnlyList<string> Errors)> ApproveAfterSimulatedServiceRestartAsync(
+        string trackingId)
+    {
+        var restartedDecisionHandler = new ApprovalDecisionHandler(
+            approvalStore,
+            paymentPublisher,
+            new NoOpApprovalMetricsRecorder(),
+            NullLogger<ApprovalDecisionHandler>.Instance);
+
+        return restartedDecisionHandler.ApplyDecisionAsync(
+            trackingId,
+            new ApprovalDecisionRequest(
+                "Approve",
+                "Approved after simulated Approval Service restart.",
+                null));
+    }
+
+    public async Task<SubmissionCreationResult[]> SubmitConcurrentlyAsync(
+        int submissionCount,
+        string vendor,
+        string invoiceNumber,
+        decimal amount,
+        string category)
+    {
+        var submissions = Enumerable.Range(0, submissionCount)
+            .Select(_ => SubmitAsync(vendor, invoiceNumber, amount, category))
+            .ToArray();
+
+        return await Task.WhenAll(submissions);
+    }
+
     public async Task<SubmissionState?> GetWorkflowStateAsync(string trackingId)
     {
         return await approvalStore.GetAsync(trackingId);
