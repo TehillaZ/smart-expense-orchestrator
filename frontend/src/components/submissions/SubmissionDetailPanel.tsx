@@ -129,6 +129,12 @@ export function SubmissionDetailPanel({
             <dd className="text-slate-900">{detail.citedRules.join(', ')}</dd>
           </div>
         ) : null}
+        {detail.autonomyCeilingAtDecision != null ? (
+          <div>
+            <dt className="font-medium text-slate-500">Ceiling at decision</dt>
+            <dd className="text-slate-900">{formatAmount(detail.autonomyCeilingAtDecision)}</dd>
+          </div>
+        ) : null}
       </dl>
 
       {showAuditLink ? (

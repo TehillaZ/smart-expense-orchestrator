@@ -116,9 +116,12 @@ export function AuditTrailPage() {
         </div>
       ) : null}
 
-      {audit && policy ? (
+      {audit ? (
         <>
-          <PolicyCompliancePanel audit={audit} policy={policy} />
+          <PolicyCompliancePanel
+            audit={audit}
+            currentAutonomyCeiling={policy?.autonomyCeiling ?? null}
+          />
 
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
             <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm lg:col-span-1">

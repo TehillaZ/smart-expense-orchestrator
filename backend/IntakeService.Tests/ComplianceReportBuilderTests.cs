@@ -6,6 +6,29 @@ namespace IntakeService.Tests;
 public class ComplianceReportBuilderTests
 {
     [Fact]
+    public void Build_UsesAutonomyCeilingAtDecisionForComplianceCheck()
+    {
+        var submissions = new[]
+        {
+            new SubmissionStatusResponse(
+                "tracking-4",
+                "correlation-4",
+                "Delta Co",
+                "INV-1004",
+                500m,
+                "Travel",
+                WorkflowStatuses.AutoApproved,
+                "Auto-approved within policy.",
+                AutonomyCeilingAtDecision: 600m),
+        };
+
+        var report = ComplianceReportBuilder.Build(submissions, 400m, "v2");
+
+        Assert.Equal(1, report.AutoApprovedReviewedCount);
+        Assert.Equal(0, report.ViolationCount);
+    }
+
+    [Fact]
     public void Build_FlagsAutoApprovedSubmissionAboveCeilingAsViolation()
     {
         var submissions = new[]

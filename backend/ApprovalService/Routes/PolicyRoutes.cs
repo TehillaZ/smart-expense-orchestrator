@@ -27,10 +27,18 @@ public static class PolicyRoutes
             }
 
             var current = await policySettingsStore.GetAsync();
+            var hasChanges = request.AutonomyCeiling is not null
+                || request.AutonomyConfidence is not null
+                || request.CategoryRules is not null;
+
             var updated = current with
             {
                 AutonomyCeiling = request.AutonomyCeiling ?? current.AutonomyCeiling,
-                AutonomyConfidence = request.AutonomyConfidence ?? current.AutonomyConfidence
+                AutonomyConfidence = request.AutonomyConfidence ?? current.AutonomyConfidence,
+                CategoryRules = request.CategoryRules ?? current.CategoryRules,
+                PolicyVersion = hasChanges
+                    ? PolicyVersionHelper.Bump(current.PolicyVersion)
+                    : current.PolicyVersion,
             };
 
             await policySettingsStore.SaveAsync(updated);

@@ -28,6 +28,7 @@ public sealed record SubmissionStatusResponse(
     decimal? AiConfidence = null,
     IReadOnlyList<string>? CitedRules = null,
     string? PolicyVersion = null,
+    decimal? AutonomyCeilingAtDecision = null,
     string? HumanDecision = null,
     string? HumanDecisionComment = null,
     int DuplicateResubmitCount = 0);

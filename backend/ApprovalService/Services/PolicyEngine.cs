@@ -18,28 +18,14 @@ public sealed class PolicyEngine
             hardStop = true;
         }
 
-        if (IsCategory(submission.Category, "hardware") && submission.Amount > 1000m)
+        foreach (var categoryRule in settings.CategoryRules)
         {
-            appliedRules.Add("HW-02");
-            hardStop = true;
-        }
-
-        if (IsCategory(submission.Category, "travel") && submission.Amount > 1500m)
-        {
-            appliedRules.Add("TRAVEL-02");
-            hardStop = true;
-        }
-
-        if (IsCategory(submission.Category, "saas") && submission.Amount > 200m)
-        {
-            appliedRules.Add("SAAS-01");
-            hardStop = true;
-        }
-
-        if (IsCategory(submission.Category, "meals") && submission.Amount > 500m)
-        {
-            appliedRules.Add("MEAL-02");
-            hardStop = true;
+            if (IsCategory(submission.Category, categoryRule.Category)
+                && submission.Amount > categoryRule.MaxAmount)
+            {
+                appliedRules.Add(categoryRule.RuleId);
+                hardStop = true;
+            }
         }
 
         var aiSaysApprove = string.Equals(aiRecommendation.Recommendation, "Approve", StringComparison.OrdinalIgnoreCase);

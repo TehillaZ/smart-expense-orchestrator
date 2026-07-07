@@ -3,7 +3,7 @@ import { Toast } from '../components/ui/Toast'
 import { useAppRole } from '../hooks/useAppRole'
 import { ApiRequestError } from '../services/apiClient'
 import { loadPolicySettings, updatePolicySettings } from '../services/policyService'
-import type { PolicySettings } from '../types/api'
+import type { CategoryPolicyRule, PolicySettings } from '../types/api'
 import { canManagePolicy } from '../types/userRole'
 
 type ToastState = {
@@ -11,15 +11,40 @@ type ToastState = {
   variant: 'success' | 'error'
 }
 
+type CategoryRuleFormRow = {
+  category: string
+  maxAmount: string
+  ruleId: string
+}
+
 type PolicyFormState = {
   autonomyCeiling: string
   autonomyConfidence: string
+  categoryRules: CategoryRuleFormRow[]
+}
+
+function normalizeSettings(settings: PolicySettings): PolicySettings {
+  return {
+    ...settings,
+    categoryRules: settings.categoryRules ?? [],
+  }
+}
+
+function toCategoryRuleRows(rules: CategoryPolicyRule[]): CategoryRuleFormRow[] {
+  return rules.map((rule) => ({
+    category: rule.category,
+    maxAmount: String(rule.maxAmount),
+    ruleId: rule.ruleId,
+  }))
 }
 
 function toFormState(settings: PolicySettings): PolicyFormState {
+  const normalized = normalizeSettings(settings)
+
   return {
-    autonomyCeiling: String(settings.autonomyCeiling),
-    autonomyConfidence: String(settings.autonomyConfidence),
+    autonomyCeiling: String(normalized.autonomyCeiling),
+    autonomyConfidence: String(normalized.autonomyConfidence),
+    categoryRules: toCategoryRuleRows(normalized.categoryRules),
   }
 }
 
@@ -39,13 +64,40 @@ function validateForm(form: PolicyFormState): string | null {
     return 'Confidence threshold must be between 0 and 1.'
   }
 
+  for (const rule of form.categoryRules) {
+    if (!rule.category.trim()) {
+      return 'Each category rule must include a category name.'
+    }
+
+    const maxAmount = Number.parseFloat(rule.maxAmount)
+    if (!rule.maxAmount.trim() || Number.isNaN(maxAmount) || maxAmount <= 0) {
+      return `Category rule "${rule.category}" must have a max amount greater than zero.`
+    }
+
+    if (!rule.ruleId.trim()) {
+      return `Category rule "${rule.category}" must include a rule id.`
+    }
+  }
+
   return null
+}
+
+function parseCategoryRules(form: PolicyFormState): CategoryPolicyRule[] {
+  return form.categoryRules.map((rule) => ({
+    category: rule.category.trim(),
+    maxAmount: Number.parseFloat(rule.maxAmount),
+    ruleId: rule.ruleId.trim(),
+  }))
 }
 
 export function PolicySettingsPage() {
   const role = useAppRole()
   const [settings, setSettings] = useState<PolicySettings | null>(null)
-  const [form, setForm] = useState<PolicyFormState>({ autonomyCeiling: '', autonomyConfidence: '' })
+  const [form, setForm] = useState<PolicyFormState>({
+    autonomyCeiling: '',
+    autonomyConfidence: '',
+    categoryRules: [],
+  })
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
@@ -56,7 +108,7 @@ export function PolicySettingsPage() {
     setErrorMessage(null)
 
     try {
-      const current = await loadPolicySettings()
+      const current = normalizeSettings(await loadPolicySettings())
       setSettings(current)
       setForm(toFormState(current))
     } catch (error) {
@@ -85,6 +137,36 @@ export function PolicySettingsPage() {
     return () => window.clearTimeout(timeoutId)
   }, [toast])
 
+  function updateCategoryRule(
+    index: number,
+    field: keyof CategoryRuleFormRow,
+    value: string,
+  ) {
+    setForm((current) => ({
+      ...current,
+      categoryRules: current.categoryRules.map((rule, ruleIndex) =>
+        ruleIndex === index ? { ...rule, [field]: value } : rule,
+      ),
+    }))
+  }
+
+  function addCategoryRule() {
+    setForm((current) => ({
+      ...current,
+      categoryRules: [
+        ...current.categoryRules,
+        { category: '', maxAmount: '', ruleId: '' },
+      ],
+    }))
+  }
+
+  function removeCategoryRule(index: number) {
+    setForm((current) => ({
+      ...current,
+      categoryRules: current.categoryRules.filter((_, ruleIndex) => ruleIndex !== index),
+    }))
+  }
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
 
@@ -97,15 +179,18 @@ export function PolicySettingsPage() {
     setIsSaving(true)
 
     try {
-      const updated = await updatePolicySettings({
-        autonomyCeiling: Number.parseFloat(form.autonomyCeiling),
-        autonomyConfidence: Number.parseFloat(form.autonomyConfidence),
-      })
+      const updated = normalizeSettings(
+        await updatePolicySettings({
+          autonomyCeiling: Number.parseFloat(form.autonomyCeiling),
+          autonomyConfidence: Number.parseFloat(form.autonomyConfidence),
+          categoryRules: parseCategoryRules(form),
+        }),
+      )
 
       setSettings(updated)
       setForm(toFormState(updated))
       setToast({
-        message: 'Policy settings updated. Changes apply to new submissions immediately.',
+        message: `Policy updated to ${updated.policyVersion}. Changes apply to new submissions immediately.`,
         variant: 'success',
       })
     } catch (error) {
@@ -148,8 +233,8 @@ export function PolicySettingsPage() {
             Policy Settings
           </h2>
           <p className="mt-1 text-sm text-slate-600">
-            Tune auto-approval thresholds. Expenses above the ceiling or below the confidence
-            threshold escalate to the Approvals Queue.
+            Configure autonomy thresholds and category spending limits without redeploying code.
+            Changes apply to new submissions immediately.
           </p>
         </div>
 
@@ -170,16 +255,10 @@ export function PolicySettingsPage() {
           {isLoading ? (
             <p className="text-sm text-slate-500">Loading policy settings…</p>
           ) : (
-            <form className="max-w-xl space-y-6" onSubmit={(event) => void handleSubmit(event)}>
+            <form className="max-w-3xl space-y-6" onSubmit={(event) => void handleSubmit(event)}>
               <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
                 <span className="font-medium text-slate-900">Policy version:</span>{' '}
                 {settings?.policyVersion ?? '—'}
-              </div>
-
-              <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
-                Category rules, blocked vendors, and keyword filters are enforced by the approval
-                engine in this demo. Runtime tuning here covers autonomy ceiling and AI confidence
-                only — no redeploy required for those thresholds.
               </div>
 
               <div>
@@ -235,8 +314,96 @@ export function PolicySettingsPage() {
                 </p>
               </div>
 
+              <div className="space-y-3">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <h3 className="text-sm font-semibold text-slate-900">Category spending limits</h3>
+                    <p className="mt-1 text-xs text-slate-500">
+                      Expenses above the limit for a matching category (case-insensitive) escalate
+                      with the cited rule id.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={addCategoryRule}
+                    className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                  >
+                    Add rule
+                  </button>
+                </div>
+
+                {form.categoryRules.length === 0 ? (
+                  <p className="rounded-lg border border-dashed border-slate-300 px-4 py-6 text-sm text-slate-500">
+                    No category rules configured.
+                  </p>
+                ) : (
+                  <div className="space-y-3">
+                    {form.categoryRules.map((rule, index) => (
+                      <div
+                        key={`${rule.ruleId}-${index}`}
+                        className="grid grid-cols-1 gap-3 rounded-lg border border-slate-200 bg-slate-50 p-4 md:grid-cols-[1fr_1fr_1fr_auto]"
+                      >
+                        <div>
+                          <label className="mb-1 block text-xs font-medium text-slate-600">
+                            Category
+                          </label>
+                          <input
+                            type="text"
+                            value={rule.category}
+                            onChange={(event) =>
+                              updateCategoryRule(index, 'category', event.target.value)
+                            }
+                            placeholder="travel"
+                            className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm"
+                          />
+                        </div>
+                        <div>
+                          <label className="mb-1 block text-xs font-medium text-slate-600">
+                            Max amount (USD)
+                          </label>
+                          <input
+                            type="number"
+                            min="0.01"
+                            step="0.01"
+                            value={rule.maxAmount}
+                            onChange={(event) =>
+                              updateCategoryRule(index, 'maxAmount', event.target.value)
+                            }
+                            className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm"
+                          />
+                        </div>
+                        <div>
+                          <label className="mb-1 block text-xs font-medium text-slate-600">
+                            Rule id
+                          </label>
+                          <input
+                            type="text"
+                            value={rule.ruleId}
+                            onChange={(event) =>
+                              updateCategoryRule(index, 'ruleId', event.target.value)
+                            }
+                            placeholder="TRAVEL-02"
+                            className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm"
+                          />
+                        </div>
+                        <div className="flex items-end">
+                          <button
+                            type="button"
+                            onClick={() => removeCategoryRule(index)}
+                            className="rounded-lg border border-red-200 bg-white px-3 py-2 text-xs font-semibold text-red-700 hover:bg-red-50"
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
               <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-                Changes apply to new submissions immediately. Existing escalated items are not
+                Saving bumps the policy version. Existing audit records keep the version and ceiling
+                recorded at decision time. Escalated items already in the queue are not
                 re-evaluated.
               </div>
 

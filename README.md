@@ -156,4 +156,4 @@ _Add link to your 2–5 minute demo video here._
 
 ## License
 
-_Add license file if required by your course._
+This project is licensed under the MIT License — see [LICENSE](LICENSE).

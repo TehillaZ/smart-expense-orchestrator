@@ -72,15 +72,23 @@ export type ApprovalDecisionResponse = {
   reason: string
 }
 
+export type CategoryPolicyRule = {
+  category: string
+  maxAmount: number
+  ruleId: string
+}
+
 export type PolicySettings = {
   autonomyCeiling: number
   autonomyConfidence: number
   policyVersion: string
+  categoryRules: CategoryPolicyRule[]
 }
 
 export type PolicySettingsUpdatePayload = {
   autonomyCeiling?: number
   autonomyConfidence?: number
+  categoryRules?: CategoryPolicyRule[]
 }
 
 export type AuditTimelineEvent = {
@@ -101,6 +109,7 @@ export type AuditTrailResponse = {
     category: string
   }
   policyVersion: string
+  autonomyCeilingAtDecision?: number | null
   rulesApplied: string[]
   ai: {
     recommendation?: string | null

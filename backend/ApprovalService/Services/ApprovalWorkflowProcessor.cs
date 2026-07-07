@@ -80,8 +80,9 @@ public sealed class ApprovalWorkflowProcessor
                 Reason = evaluation.Reason,
                 AiRecommendation = evaluation.AiRecommendation.Recommendation,
                 AiConfidence = evaluation.AiRecommendation.Confidence,
-                CitedRules = evaluation.AiRecommendation.CitedRules,
-                PolicyVersion = settings.PolicyVersion
+                CitedRules = MergeCitedRules(evaluation.AppliedRules, evaluation.AiRecommendation.CitedRules),
+                PolicyVersion = settings.PolicyVersion,
+                AutonomyCeilingAtDecision = settings.AutonomyCeiling,
             };
 
             await stateStore.SaveAsync(finalState);
@@ -136,5 +137,22 @@ public sealed class ApprovalWorkflowProcessor
             or ApprovalStatuses.Paid
             or ApprovalStatuses.PaymentFailed
             or ApprovalStatuses.Compensated;
+    }
+
+    private static IReadOnlyList<string> MergeCitedRules(
+        IReadOnlyList<string> appliedRules,
+        IReadOnlyList<string> aiCitedRules)
+    {
+        var merged = new List<string>(appliedRules);
+
+        foreach (var rule in aiCitedRules)
+        {
+            if (!merged.Contains(rule, StringComparer.OrdinalIgnoreCase))
+            {
+                merged.Add(rule);
+            }
+        }
+
+        return merged;
     }
 }

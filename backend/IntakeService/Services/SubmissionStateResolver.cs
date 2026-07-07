@@ -122,6 +122,11 @@ public static class SubmissionStateResolver
             return true;
         }
 
+        if (candidate.AutonomyCeilingAtDecision is not null && current.AutonomyCeilingAtDecision is null)
+        {
+            return true;
+        }
+
         return false;
     }
 }
