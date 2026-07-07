@@ -135,13 +135,6 @@ export function MySubmissionsPage() {
         isDuplicate: response.isDuplicate,
       })
 
-      const duplicateNote = response.isDuplicate ? ' (existing submission returned)' : ''
-
-      setToast({
-        message: `Submission accepted. Tracking ID: ${response.trackingId}${duplicateNote}`,
-        variant: 'success',
-      })    
-
       await refreshHistory(false)
     } catch (error) {
       const message =
