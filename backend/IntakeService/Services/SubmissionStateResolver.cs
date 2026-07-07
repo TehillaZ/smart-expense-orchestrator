@@ -36,17 +36,34 @@ public static class SubmissionStateResolver
         var localRank = GetRank(localState);
         var workflowRank = GetRank(workflowState);
 
+        SubmissionStatusResponse resolved;
+
         if (workflowRank > localRank)
         {
-            return workflowState;
+            resolved = workflowState;
         }
-
-        if (localRank > workflowRank)
+        else if (localRank > workflowRank)
         {
-            return localState;
+            resolved = localState;
+        }
+        else
+        {
+            resolved = HasRicherContext(workflowState, localState) ? workflowState : localState;
         }
 
-        return HasRicherContext(workflowState, localState) ? workflowState : localState;
+        return PreserveIntakeMetadata(localState, resolved);
+    }
+
+    private static SubmissionStatusResponse PreserveIntakeMetadata(
+        SubmissionStatusResponse localState,
+        SubmissionStatusResponse resolved)
+    {
+        if (localState.DuplicateResubmitCount <= resolved.DuplicateResubmitCount)
+        {
+            return resolved;
+        }
+
+        return resolved with { DuplicateResubmitCount = localState.DuplicateResubmitCount };
     }
 
     public static (string Status, string DecisionType) ToRecentActivityFields(

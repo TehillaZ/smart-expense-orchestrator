@@ -16,6 +16,10 @@ export type SubmitExpenseInput = {
   category: ExpenseCategory
 }
 
+function hasDuplicateResubmits(intake: SubmissionStatusResponse): boolean {
+  return (intake.duplicateResubmitCount ?? 0) > 0
+}
+
 export async function submitExpense(
   input: SubmitExpenseInput,
 ): Promise<SubmissionAcceptedResponse> {
@@ -68,9 +72,9 @@ async function getNotificationOutcome(
 function toSubmissionRecord(
   intake: SubmissionStatusResponse,
   notification: NotificationResponse | null,
-  isDuplicateResubmit = false,
 ): SubmissionRecord {
   const backendStatus = notification?.status ?? intake.status
+  const duplicateResubmitCount = intake.duplicateResubmitCount ?? 0
 
   return {
     trackingId: intake.trackingId,
@@ -80,17 +84,19 @@ function toSubmissionRecord(
     invoiceNumber: intake.invoiceNumber,
     category: (intake.category as ExpenseCategory | undefined) ?? 'Other',
     backendStatus,
-    reason: notification?.reason ?? intake.reason,
-    isDuplicateResubmit,
+    reason: intake.reason,
+    isDuplicateResubmit: duplicateResubmitCount > 0,
+    duplicateResubmitCount,
+    humanDecision: intake.humanDecision ?? null,
+    humanDecisionComment: intake.humanDecisionComment ?? null,
   }
 }
 
 function toSubmissionDetail(
   intake: SubmissionStatusResponse,
   notification: NotificationResponse | null,
-  isDuplicateResubmit = false,
 ): SubmissionDetail {
-  const record = toSubmissionRecord(intake, notification, isDuplicateResubmit)
+  const record = toSubmissionRecord(intake, notification)
 
   return {
     ...record,
@@ -101,12 +107,13 @@ function toSubmissionDetail(
     aiConfidence: intake.aiConfidence,
     citedRules: intake.citedRules ?? undefined,
     policyVersion: intake.policyVersion,
+    humanDecision: intake.humanDecision ?? null,
+    humanDecisionComment: intake.humanDecisionComment ?? null,
   }
 }
 
 async function enrichSubmission(
   summary: SubmissionStatusResponse,
-  duplicateIds?: Set<string>,
 ): Promise<SubmissionRecord> {
   try {
     const [latestStatus, notification] = await Promise.all([
@@ -114,16 +121,14 @@ async function enrichSubmission(
       getNotificationOutcome(summary.trackingId),
     ])
 
-    const isDuplicateResubmit = duplicateIds?.has(summary.trackingId) ?? false
-    return toSubmissionRecord(latestStatus ?? summary, notification, isDuplicateResubmit)
+    return toSubmissionRecord(latestStatus ?? summary, notification)
   } catch {
-    return toSubmissionRecord(summary, null, duplicateIds?.has(summary.trackingId) ?? false)
+    return toSubmissionRecord(summary, null)
   }
 }
 
 export async function loadSubmissionDetail(
   trackingId: string,
-  isDuplicateResubmit = false,
 ): Promise<SubmissionDetail | null> {
   const [intake, notification] = await Promise.all([
     getSubmissionStatus(trackingId),
@@ -134,17 +139,17 @@ export async function loadSubmissionDetail(
     return null
   }
 
-  return toSubmissionDetail(intake, notification, isDuplicateResubmit)
+  return toSubmissionDetail(intake, notification)
 }
 
-export async function loadSubmissionHistory(
-  duplicateIds?: Set<string>,
-): Promise<SubmissionRecord[]> {
+export async function loadSubmissionHistory(): Promise<SubmissionRecord[]> {
   const submissions = await requestJson<SubmissionStatusResponse[]>(API_ENDPOINTS.submissions)
 
   if (submissions.length === 0) {
     return []
   }
 
-  return Promise.all(submissions.map((submission) => enrichSubmission(submission, duplicateIds)))
+  return Promise.all(submissions.map((submission) => enrichSubmission(submission)))
 }
+
+export { hasDuplicateResubmits }

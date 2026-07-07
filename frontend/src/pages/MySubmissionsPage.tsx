@@ -14,11 +14,6 @@ import {
 } from '../services/submissionService'
 import type { ExpenseCategory, SubmissionDetail, SubmissionRecord } from '../types/submission'
 import { canSubmitExpenses } from '../types/userRole'
-import {
-  isDuplicateTrackingId,
-  loadDuplicateTrackingIds,
-  markDuplicateTrackingId,
-} from '../utils/duplicateTracking'
 
 const REFRESH_INTERVAL_MS = 5000
 
@@ -32,11 +27,14 @@ type SubmitSuccessState = {
   isDuplicate: boolean
 }
 
-export function MySubmissionsPage() {
+type MySubmissionsPageProps = {
+  mode?: 'submit' | 'track'
+}
+
+export function MySubmissionsPage({ mode = 'submit' }: MySubmissionsPageProps) {
   const role = useAppRole()
-  const showSubmitForm = canSubmitExpenses(role)
+  const showSubmitForm = canSubmitExpenses(role) && mode === 'submit'
   const [submissions, setSubmissions] = useState<SubmissionRecord[]>([])
-  const [duplicateIds, setDuplicateIds] = useState<Set<string>>(() => loadDuplicateTrackingIds())
   const [selectedTrackingId, setSelectedTrackingId] = useState<string | null>(null)
   const [selectedDetail, setSelectedDetail] = useState<SubmissionDetail | null>(null)
   const [submitSuccess, setSubmitSuccess] = useState<SubmitSuccessState | null>(null)
@@ -54,7 +52,7 @@ export function MySubmissionsPage() {
     setHistoryError(null)
 
     try {
-      const records = await loadSubmissionHistory(duplicateIds)
+      const records = await loadSubmissionHistory()
       setSubmissions(records)
     } catch (error) {
       const message =
@@ -65,7 +63,7 @@ export function MySubmissionsPage() {
     } finally {
       setIsLoadingHistory(false)
     }
-  }, [duplicateIds])
+  }, [])
 
   const loadDetail = useCallback(async (trackingId: string) => {
     setIsLoadingDetail(true)
@@ -73,10 +71,7 @@ export function MySubmissionsPage() {
     setSelectedTrackingId(trackingId)
 
     try {
-      const detail = await loadSubmissionDetail(
-        trackingId,
-        isDuplicateTrackingId(trackingId),
-      )
+      const detail = await loadSubmissionDetail(trackingId)
 
       if (!detail) {
         setSelectedDetail(null)
@@ -125,11 +120,6 @@ export function MySubmissionsPage() {
     try {
       const response = await submitExpense(data)
 
-      if (response.isDuplicate) {
-        markDuplicateTrackingId(response.trackingId)
-        setDuplicateIds(loadDuplicateTrackingIds())
-      }
-
       setSubmitSuccess({
         trackingId: response.trackingId,
         isDuplicate: response.isDuplicate,
@@ -172,11 +162,15 @@ export function MySubmissionsPage() {
 
       <div className="space-y-6">
         <div>
-          <h2 className="text-2xl font-semibold tracking-tight text-slate-900">My Submissions</h2>
+          <h2 className="text-2xl font-semibold tracking-tight text-slate-900">
+            {mode === 'track' ? 'Track Submissions' : 'My Submissions'}
+          </h2>
           <p className="mt-1 text-sm text-slate-600">
-            {showSubmitForm
-              ? 'Submit new expenses and track plain-language approval outcomes.'
-              : 'Review submission history and status details across the platform.'}
+            {mode === 'track'
+              ? 'Search by tracking id and review plain-language approval outcomes.'
+              : showSubmitForm
+                ? 'Submit new expenses and track plain-language approval outcomes.'
+                : 'Review submission history and status details across the platform.'}
           </p>
         </div>
 
@@ -203,7 +197,7 @@ export function MySubmissionsPage() {
         {selectedDetail ? (
           <SubmissionDetailPanel
             detail={selectedDetail}
-            isDuplicateResubmit={isDuplicateTrackingId(selectedDetail.trackingId)}
+            isDuplicateResubmit={selectedDetail.isDuplicateResubmit}
             onClose={() => {
               setSelectedDetail(null)
               setSelectedTrackingId(null)

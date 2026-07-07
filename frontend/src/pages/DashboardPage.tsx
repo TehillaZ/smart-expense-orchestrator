@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { DashboardCompliancePanel } from '../components/dashboard/DashboardCompliancePanel'
 import { DashboardOperationsChart } from '../components/dashboard/DashboardOperationsChart'
+import { MobileDataCard, MobileDataList, MobileDataRow } from '../components/ui/MobileDataCard'
 import { useAppRole } from '../hooks/useAppRole'
 import { ApiRequestError } from '../services/apiClient'
-import { loadReportingSummary } from '../services/reportService'
-import type { ReportingSummaryResponse } from '../types/api'
+import { loadComplianceReport, loadReportingSummary } from '../services/reportService'
+import type { ComplianceReportResponse, ReportingSummaryResponse } from '../types/api'
 import { isDashboardReadOnly } from '../types/userRole'
 
 function formatCurrency(amount: number): string {
@@ -54,6 +56,7 @@ export function DashboardPage() {
   const role = useAppRole()
   const readOnly = isDashboardReadOnly(role)
   const [summary, setSummary] = useState<ReportingSummaryResponse | null>(null)
+  const [compliance, setCompliance] = useState<ComplianceReportResponse | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
@@ -62,8 +65,12 @@ export function DashboardPage() {
     setErrorMessage(null)
 
     try {
-      const data = await loadReportingSummary()
-      setSummary(data)
+      const [summaryData, complianceData] = await Promise.all([
+        loadReportingSummary(),
+        loadComplianceReport(),
+      ])
+      setSummary(summaryData)
+      setCompliance(complianceData)
     } catch (error) {
       const message =
         error instanceof ApiRequestError
@@ -116,8 +123,13 @@ export function DashboardPage() {
         <p className="text-sm text-slate-500">Loading dashboard metrics…</p>
       ) : summary ? (
         <>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
             <MetricCard label="Total submissions" value={String(summary.totalSubmissions)} />
+            <MetricCard
+              label="Submissions today"
+              value={String(summary.submissionsTodayCount)}
+              hint="Received since UTC midnight"
+            />
             <MetricCard
               label="Auto-approval rate"
               value={formatRate(summary.autoApprovalRate)}
@@ -149,79 +161,117 @@ export function DashboardPage() {
 
           <DashboardOperationsChart summary={summary} />
 
+          {compliance ? <DashboardCompliancePanel report={compliance} /> : null}
+
           <section className="rounded-xl border border-slate-200 bg-white shadow-sm">
-            <div className="border-b border-slate-200 px-6 py-5">
+            <div className="border-b border-slate-200 px-4 py-4 sm:px-6 sm:py-5">
               <h3 className="text-lg font-semibold text-slate-900">Recent Activity</h3>
             </div>
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-slate-200">
-                <thead className="bg-slate-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
-                      Invoice
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
-                      Vendor
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
-                      Amount
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
-                      Status
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
-                      Decision
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
-                      Recorded
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
-                      Audit
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 bg-white">
-                  {summary.recentActivity.length === 0 ? (
-                    <tr>
-                      <td colSpan={7} className="px-6 py-10 text-center text-sm text-slate-500">
-                        No submissions yet.
-                      </td>
-                    </tr>
-                  ) : (
-                    summary.recentActivity.map((item) => (
-                      <tr key={item.trackingId}>
-                        <td className="whitespace-nowrap px-6 py-4 font-mono text-sm text-slate-900">
+
+            {summary.recentActivity.length === 0 ? (
+              <p className="px-4 py-10 text-center text-sm text-slate-500 sm:px-6">
+                No submissions yet.
+              </p>
+            ) : (
+              <>
+                <div className="space-y-3 p-4 md:hidden">
+                  {summary.recentActivity.map((item) => (
+                    <MobileDataCard key={item.trackingId}>
+                      <div className="flex flex-wrap items-start justify-between gap-3">
+                        <p className="font-mono text-sm font-semibold text-slate-900">
                           {item.invoiceNumber}
-                        </td>
-                        <td className="whitespace-nowrap px-6 py-4 text-sm text-slate-700">
-                          {item.vendor}
-                        </td>
-                        <td className="whitespace-nowrap px-6 py-4 text-sm font-medium text-slate-900">
+                        </p>
+                        <p className="text-sm font-semibold text-slate-900">
                           {formatCurrency(item.amount)}
-                        </td>
-                        <td className="whitespace-nowrap px-6 py-4 text-sm text-slate-700">
-                          {item.status}
-                        </td>
-                        <td className="whitespace-nowrap px-6 py-4 text-sm text-slate-700">
-                          {item.decisionType}
-                        </td>
-                        <td className="whitespace-nowrap px-6 py-4 text-sm text-slate-500">
-                          {formatTimestamp(item.recordedAt)}
-                        </td>
-                        <td className="whitespace-nowrap px-6 py-4 text-sm">
-                          <Link
-                            to={`/audit?trackingId=${encodeURIComponent(item.trackingId)}`}
-                            className="font-medium text-blue-700 underline hover:text-blue-900"
-                          >
-                            View trail
-                          </Link>
-                        </td>
+                        </p>
+                      </div>
+                      <MobileDataList className="mt-3">
+                        <MobileDataRow label="Vendor" value={item.vendor} />
+                        <MobileDataRow label="Status" value={item.status} />
+                        <MobileDataRow label="Decision" value={item.decisionType} />
+                        <MobileDataRow
+                          label="Recorded"
+                          value={formatTimestamp(item.recordedAt)}
+                        />
+                        <MobileDataRow
+                          label="Audit"
+                          value={
+                            <Link
+                              to={`/audit?trackingId=${encodeURIComponent(item.trackingId)}`}
+                              className="font-medium text-blue-700 underline hover:text-blue-900"
+                            >
+                              View trail
+                            </Link>
+                          }
+                        />
+                      </MobileDataList>
+                    </MobileDataCard>
+                  ))}
+                </div>
+
+                <div className="hidden overflow-x-auto md:block">
+                  <table className="min-w-full divide-y divide-slate-200">
+                    <thead className="bg-slate-50">
+                      <tr>
+                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500 sm:px-6">
+                          Invoice
+                        </th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500 sm:px-6">
+                          Vendor
+                        </th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500 sm:px-6">
+                          Amount
+                        </th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500 sm:px-6">
+                          Status
+                        </th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500 sm:px-6">
+                          Decision
+                        </th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500 sm:px-6">
+                          Recorded
+                        </th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500 sm:px-6">
+                          Audit
+                        </th>
                       </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 bg-white">
+                      {summary.recentActivity.map((item) => (
+                        <tr key={item.trackingId}>
+                          <td className="whitespace-nowrap px-4 py-4 font-mono text-sm text-slate-900 sm:px-6">
+                            {item.invoiceNumber}
+                          </td>
+                          <td className="whitespace-nowrap px-4 py-4 text-sm text-slate-700 sm:px-6">
+                            {item.vendor}
+                          </td>
+                          <td className="whitespace-nowrap px-4 py-4 text-sm font-medium text-slate-900 sm:px-6">
+                            {formatCurrency(item.amount)}
+                          </td>
+                          <td className="whitespace-nowrap px-4 py-4 text-sm text-slate-700 sm:px-6">
+                            {item.status}
+                          </td>
+                          <td className="whitespace-nowrap px-4 py-4 text-sm text-slate-700 sm:px-6">
+                            {item.decisionType}
+                          </td>
+                          <td className="whitespace-nowrap px-4 py-4 text-sm text-slate-500 sm:px-6">
+                            {formatTimestamp(item.recordedAt)}
+                          </td>
+                          <td className="whitespace-nowrap px-4 py-4 text-sm sm:px-6">
+                            <Link
+                              to={`/audit?trackingId=${encodeURIComponent(item.trackingId)}`}
+                              className="font-medium text-blue-700 underline hover:text-blue-900"
+                            >
+                              View trail
+                            </Link>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </>
+            )}
           </section>
         </>
       ) : null}

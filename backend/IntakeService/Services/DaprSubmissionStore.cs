@@ -41,13 +41,21 @@ public sealed class DaprSubmissionStore : ISubmissionStore
 
             if (existingSubmission is not null)
             {
+                var updatedSubmission = existingSubmission with
+                {
+                    DuplicateResubmitCount = existingSubmission.DuplicateResubmitCount + 1,
+                };
+
+                await daprClient.SaveStateAsync(StateStoreName, existingTrackingId, updatedSubmission);
+
                 logger.LogInformation(
-                    "Duplicate submission detected for vendor {Vendor}, invoice {InvoiceNumber}, amount {Amount}. Returning existing tracking id {TrackingId}.",
+                    "Duplicate submission detected for vendor {Vendor}, invoice {InvoiceNumber}, amount {Amount}. Returning existing tracking id {TrackingId} (resubmit count {DuplicateResubmitCount}).",
                     request.Vendor,
                     request.InvoiceNumber,
                     request.Amount,
-                    existingTrackingId);
-                return new SubmissionCreationResult(existingSubmission, true);
+                    existingTrackingId,
+                    updatedSubmission.DuplicateResubmitCount);
+                return new SubmissionCreationResult(updatedSubmission, true);
             }
         }
 
@@ -132,6 +140,35 @@ public sealed class DaprSubmissionStore : ISubmissionStore
                 "Failed to read submission {TrackingId} from the {StateStoreName} state store.",
                 trackingId,
                 StateStoreName);
+            throw;
+        }
+    }
+
+    public async Task<SubmissionStatusResponse?> FindByCorrelationIdAsync(string correlationId)
+    {
+        try
+        {
+            var registry = await daprClient.GetStateAsync<List<string>>(StateStoreName, RegistryKey)
+                ?? [];
+
+            foreach (var trackingId in registry)
+            {
+                var submission = await GetSubmissionAsync(trackingId);
+                if (submission is not null
+                    && string.Equals(submission.CorrelationId, correlationId, StringComparison.Ordinal))
+                {
+                    return submission;
+                }
+            }
+
+            return null;
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(
+                ex,
+                "Failed to find submission by correlation id {CorrelationId}.",
+                correlationId);
             throw;
         }
     }

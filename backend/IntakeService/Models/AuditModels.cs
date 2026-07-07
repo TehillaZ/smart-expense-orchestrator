@@ -63,7 +63,23 @@ public sealed record ReportingSummaryResponse(
     decimal HumanApprovedAmount,
     decimal AutoApprovalRate,
     decimal EscalationRate,
+    int SubmissionsTodayCount,
     IReadOnlyList<RecentActivityItem> RecentActivity);
+
+public sealed record AutoApprovalComplianceItem(
+    string TrackingId,
+    string InvoiceNumber,
+    string Vendor,
+    decimal Amount,
+    bool WithinCeiling,
+    bool IsViolation);
+
+public sealed record ComplianceReportResponse(
+    decimal AutonomyCeiling,
+    string PolicyVersion,
+    int AutoApprovedReviewedCount,
+    int ViolationCount,
+    IReadOnlyList<AutoApprovalComplianceItem> AutoApprovedItems);
 
 public sealed record NotificationLookupResponse(
     string TrackingId,

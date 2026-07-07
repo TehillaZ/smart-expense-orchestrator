@@ -35,6 +35,8 @@ export async function loadEscalationItem(
     confidence: detail.aiConfidence ?? 0,
     citedRules: detail.citedRules ?? [],
     reason: detail.reason,
+    humanDecision: detail.humanDecision ?? null,
+    humanDecisionComment: detail.humanDecisionComment ?? null,
   }
 }
 

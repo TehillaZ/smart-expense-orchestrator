@@ -23,6 +23,9 @@ export type SubmissionRecord = {
   backendStatus?: string
   reason?: string
   isDuplicateResubmit?: boolean
+  duplicateResubmitCount?: number
+  humanDecision?: string | null
+  humanDecisionComment?: string | null
 }
 
 export type SubmissionDetail = SubmissionRecord & {

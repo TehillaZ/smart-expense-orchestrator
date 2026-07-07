@@ -23,7 +23,13 @@ public sealed class InMemorySubmissionStore : ISubmissionStore
         if (idempotencyIndex.TryGetValue(idempotencyKey, out var existingTrackingId)
             && submissions.TryGetValue(existingTrackingId, out var existingSubmission))
         {
-            return Task.FromResult(new SubmissionCreationResult(existingSubmission, true));
+            var updatedSubmission = existingSubmission with
+            {
+                DuplicateResubmitCount = existingSubmission.DuplicateResubmitCount + 1,
+            };
+
+            submissions[existingTrackingId] = updatedSubmission;
+            return Task.FromResult(new SubmissionCreationResult(updatedSubmission, true));
         }
 
         var trackingId = Guid.NewGuid().ToString();
@@ -48,6 +54,14 @@ public sealed class InMemorySubmissionStore : ISubmissionStore
     public Task<SubmissionStatusResponse?> GetSubmissionAsync(string trackingId)
     {
         return Task.FromResult(submissions.GetValueOrDefault(trackingId));
+    }
+
+    public Task<SubmissionStatusResponse?> FindByCorrelationIdAsync(string correlationId)
+    {
+        var match = submissions.Values.FirstOrDefault(
+            submission => string.Equals(submission.CorrelationId, correlationId, StringComparison.Ordinal));
+
+        return Task.FromResult(match);
     }
 
     public Task<IReadOnlyList<SubmissionStatusResponse>> ListSubmissionsAsync()

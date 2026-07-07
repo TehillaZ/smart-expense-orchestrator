@@ -4,12 +4,13 @@ export type UserRole = (typeof USER_ROLES)[number]
 
 export type NavItem = {
   label: string
-  to: '/submissions' | '/approvals' | '/policy' | '/dashboard' | '/audit'
+  to: '/submissions' | '/track' | '/approvals' | '/policy' | '/dashboard' | '/audit'
   roles: readonly UserRole[]
 }
 
 export const NAV_ITEMS: readonly NavItem[] = [
   { label: 'Submit', to: '/submissions', roles: ['Submitter'] },
+  { label: 'Track', to: '/track', roles: ['Submitter'] },
   { label: 'Approvals', to: '/approvals', roles: ['Approver'] },
   { label: 'Dashboard', to: '/dashboard', roles: ['Controller', 'Auditor'] },
   { label: 'Audit Trail', to: '/audit', roles: ['Controller', 'Auditor'] },
@@ -33,6 +34,10 @@ export function canAccessPath(role: UserRole, pathname: string): boolean {
   const path = normalizePath(pathname)
 
   if (path === '/submissions' || path.startsWith('/submissions/')) {
+    return role === 'Submitter'
+  }
+
+  if (path === '/track' || path.startsWith('/track/')) {
     return role === 'Submitter'
   }
 

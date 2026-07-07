@@ -8,5 +8,7 @@ public interface ISubmissionStore
 
     Task<SubmissionStatusResponse?> GetSubmissionAsync(string trackingId);
 
+    Task<SubmissionStatusResponse?> FindByCorrelationIdAsync(string correlationId);
+
     Task<IReadOnlyList<SubmissionStatusResponse>> ListSubmissionsAsync();
 }
