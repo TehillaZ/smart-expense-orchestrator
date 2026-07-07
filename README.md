@@ -58,14 +58,28 @@ UI → API Gateway → Intake Service
 
    The Vite dev server proxies API calls to `http://localhost:8080`.
 
+## Git Hooks
+
+Install local hooks to keep the branch synced with `main` and enforce Conventional Commits:
+
+```powershell
+pwsh -File scripts/install-git-hooks.ps1
+```
+
+Hooks:
+
+- `pre-commit` — fetches and merges `origin/main` before each commit
+- `commit-msg` — validates lowercase `feat:`, `fix:`, `test:`, `docs:`, and `chore:` prefixes
+
 ## Run Tests
 
 ### Backend unit and journey tests
 
 ```powershell
 dotnet test backend/ApprovalFlow.sln
-dotnet test backend/ApiGateway.Tests/ApiGateway.Tests.csproj
 ```
+
+The solution includes the API Gateway and all service test projects, including in-process journey tests for the four required verification scenarios.
 
 ### Frontend lint and build
 
@@ -90,6 +104,7 @@ This script verifies:
 - `RS-90021` — payment failure and compensation
 - Adversarial "approve me" prompt does not bypass policy ceiling
 - Two eligible submissions auto-approve without human intervention
+- Escalated approval resumes after approval service restart (`INV-1003-RESTART`)
 
 Exit code is non-zero on any failure.
 
@@ -115,6 +130,8 @@ External clients should use the gateway at `http://localhost:8080` only.
 | GET/PUT | `/policy` | Read/update policy thresholds |
 | GET | `/reports/summary` | Dashboard metrics |
 | GET | `/audit/{trackingId}` | Full audit trail |
+| GET | `/reports/compliance` | Auto-approval limit compliance report |
+| GET | `/notifications/{trackingId}` | Final notification outcome for a submission |
 | GET | `/health` | Gateway health check |
 
 ## Autonomy Posture
@@ -126,15 +143,16 @@ The AI provider recommends and explains decisions but **never has final approval
 - Pub/sub is the primary async path; direct service invocation is used only as a fallback when publish fails.
 - Dashboard metrics are pre-aggregated in Intake state for demo simplicity rather than a separate analytics database.
 - Role switching in the UI is a local demo feature; JWT auth is not yet implemented.
-- CI runs unit/journey tests and compose validation; full Docker journey verification is a manual/local step.
+- CI runs backend/frontend tests, journey tests, compose config validation, and a compose build smoke check.
+- Full Docker journey verification remains available locally via `scripts/verify-journeys.ps1`.
 
 ## CI
 
 GitHub Actions runs on push and pull requests:
 
-- Backend restore, build, and test
-- Frontend lint and build
-- Docker Compose config validation
+- Backend restore, build, and test (including ApiGateway and journey tests)
+- Frontend lint, test, and build
+- Docker Compose config validation and image build smoke check
 
 See [.github/workflows/ci.yml](.github/workflows/ci.yml).
 

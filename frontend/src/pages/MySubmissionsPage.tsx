@@ -198,6 +198,12 @@ export function MySubmissionsPage({ mode = 'submit' }: MySubmissionsPageProps) {
           <SubmissionDetailPanel
             detail={selectedDetail}
             isDuplicateResubmit={selectedDetail.isDuplicateResubmit}
+            isRefreshing={isLoadingDetail}
+            onRefresh={() => {
+              if (selectedTrackingId) {
+                void loadDetail(selectedTrackingId)
+              }
+            }}
             onClose={() => {
               setSelectedDetail(null)
               setSelectedTrackingId(null)

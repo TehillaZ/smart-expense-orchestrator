@@ -21,6 +21,10 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556F}") = "ApprovalFlow.JourneyTests"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556F}") = "NotificationService.Tests", "NotificationService.Tests\NotificationService.Tests.csproj", "{C3D4E5F6-A7B8-9012-CDEF-123456789ABC}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556F}") = "ApiGateway", "ApiGateway\ApiGateway.csproj", "{D4E5F6A7-B8C9-0123-DEF0-123456789DEF}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556F}") = "ApiGateway.Tests", "ApiGateway.Tests\ApiGateway.Tests.csproj", "{E5F6A7B8-C9D0-1234-EF01-234567890ABC}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -63,6 +67,14 @@ Global
 		{C3D4E5F6-A7B8-9012-CDEF-123456789ABC}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{C3D4E5F6-A7B8-9012-CDEF-123456789ABC}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{C3D4E5F6-A7B8-9012-CDEF-123456789ABC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D4E5F6A7-B8C9-0123-DEF0-123456789DEF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D4E5F6A7-B8C9-0123-DEF0-123456789DEF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D4E5F6A7-B8C9-0123-DEF0-123456789DEF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D4E5F6A7-B8C9-0123-DEF0-123456789DEF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E5F6A7B8-C9D0-1234-EF01-234567890ABC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E5F6A7B8-C9D0-1234-EF01-234567890ABC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E5F6A7B8-C9D0-1234-EF01-234567890ABC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E5F6A7B8-C9D0-1234-EF01-234567890ABC}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

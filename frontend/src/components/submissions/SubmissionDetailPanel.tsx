@@ -9,6 +9,8 @@ import { WorkflowStepper } from './WorkflowStepper'
 type SubmissionDetailPanelProps = {
   detail: SubmissionDetail
   onClose: () => void
+  onRefresh?: () => void
+  isRefreshing?: boolean
   isDuplicateResubmit?: boolean
 }
 
@@ -22,6 +24,8 @@ function formatAmount(amount: number): string {
 export function SubmissionDetailPanel({
   detail,
   onClose,
+  onRefresh,
+  isRefreshing = false,
   isDuplicateResubmit = false,
 }: SubmissionDetailPanelProps) {
   const role = useAppRole()
@@ -40,13 +44,25 @@ export function SubmissionDetailPanel({
             Correlation: {detail.correlationId}
           </p>
         </div>
-        <button
-          type="button"
-          onClick={onClose}
-          className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
-        >
-          Close
-        </button>
+        <div className="flex flex-wrap gap-2">
+          {onRefresh ? (
+            <button
+              type="button"
+              onClick={onRefresh}
+              disabled={isRefreshing}
+              className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {isRefreshing ? 'Checking…' : 'Check Again'}
+            </button>
+          ) : null}
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
+          >
+            Close
+          </button>
+        </div>
       </div>
 
       {isDuplicateResubmit ? (

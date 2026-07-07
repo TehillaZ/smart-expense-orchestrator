@@ -7,8 +7,18 @@ services:
     ports:
       - "8080:8080"
     depends_on:
-      - intakeservice
-      - approvalservice
+      intakeservice:
+        condition: service_healthy
+      approvalservice:
+        condition: service_healthy
+      notificationservice:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
     networks:
       - approval-network
 
@@ -16,6 +26,11 @@ services:
     image: "redis:alpine"
     ports:
       - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
     networks:
       - approval-network
 
@@ -27,7 +42,14 @@ services:
     ports:
       - "5001:8080"
     depends_on:
-      - redis
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
     networks:
       - approval-network
 
@@ -42,7 +64,8 @@ services:
     volumes:
       - ./dapr/components:/components
     depends_on:
-      - intakeservice
+      intakeservice:
+        condition: service_healthy
     network_mode: "service:intakeservice"
 
   approvalservice:
@@ -53,7 +76,14 @@ services:
     ports:
       - "5002:8080"
     depends_on:
-      - redis
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
     networks:
       - approval-network
 
@@ -68,7 +98,8 @@ services:
     volumes:
       - ./dapr/components:/components
     depends_on:
-      - approvalservice
+      approvalservice:
+        condition: service_healthy
     network_mode: "service:approvalservice"
 
   paymentservice:
@@ -79,7 +110,14 @@ services:
     ports:
       - "5003:8080"
     depends_on:
-      - redis
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
     networks:
       - approval-network
 
@@ -94,7 +132,8 @@ services:
     volumes:
       - ./dapr/components:/components
     depends_on:
-      - paymentservice
+      paymentservice:
+        condition: service_healthy
     network_mode: "service:paymentservice"
 
   notificationservice:
@@ -105,7 +144,14 @@ services:
     ports:
       - "5004:8080"
     depends_on:
-      - redis
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
     networks:
       - approval-network
 
@@ -120,7 +166,8 @@ services:
     volumes:
       - ./dapr/components:/components
     depends_on:
-      - notificationservice
+      notificationservice:
+        condition: service_healthy
     network_mode: "service:notificationservice"
 
 networks:

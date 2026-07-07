@@ -14,13 +14,16 @@
     - RS-90021: payment failure with compensation
     - INV-ADV-01: approve-me prompt does not bypass ceiling
     - INV-1002 + INV-1004: two auto-approves without human
+    - INV-1003-RESTART: escalate, restart approval service, approve after restart
 
 .EXAMPLE
   pwsh -File scripts/verify-journeys.ps1
   pwsh -File scripts/verify-journeys.ps1 -BaseUrl http://localhost:8080 -WaitSeconds 10
+  pwsh -File scripts/verify-journeys.ps1 -ComposeFile infra/docker-compose.yml
 #>
 param(
     [string]$BaseUrl = "http://localhost:8080",
+    [string]$ComposeFile = "infra/docker-compose.yml",
     [int]$WaitSeconds = 8
 )
 
@@ -96,6 +99,56 @@ function Wait-ForStatus {
 
     $last = Get-SubmissionStatus -TrackingId $TrackingId
     throw "Timed out waiting for $($ExpectedStatuses -join ' or '). Last status: $($last.status)"
+}
+
+function Wait-ForApprovalServiceHealthy {
+    param([int]$MaxAttempts = 24)
+
+    for ($attempt = 1; $attempt -le $MaxAttempts; $attempt++) {
+        Start-Sleep -Seconds 5
+
+        $raw = docker compose -f $ComposeFile ps approvalservice --format json 2>$null
+        if ([string]::IsNullOrWhiteSpace($raw)) {
+            continue
+        }
+
+        $serviceState = $raw | ConvertFrom-Json
+        if ($serviceState.Health -eq "healthy") {
+            return
+        }
+    }
+
+    throw "Approval service did not become healthy after restart."
+}
+
+function Restart-ApprovalService {
+    docker compose -f $ComposeFile restart approvalservice
+    if ($LASTEXITCODE -ne 0) {
+        throw "docker compose restart approvalservice failed with exit code $LASTEXITCODE."
+    }
+
+    Wait-ForApprovalServiceHealthy
+}
+
+function Approve-SubmissionWithRetry {
+    param(
+        [string]$TrackingId,
+        [int]$MaxAttempts = 10
+    )
+
+    for ($attempt = 1; $attempt -le $MaxAttempts; $attempt++) {
+        try {
+            Approve-Submission -TrackingId $TrackingId | Out-Null
+            return
+        }
+        catch {
+            if ($attempt -eq $MaxAttempts) {
+                throw
+            }
+
+            Start-Sleep -Seconds 5
+        }
+    }
 }
 
 $failures = 0
@@ -195,6 +248,22 @@ try {
 }
 catch {
     Write-Fail "Two auto-approve submissions — $($_.Exception.Message)"
+    $failures++
+}
+
+# Journey 7: INV-1003 escalate, restart approval service, approve after restart
+try {
+    $submit = Submit-Invoice -Vendor "Acme Corp" -InvoiceNumber "INV-1003-RESTART" -Amount 500 -Category "meals"
+    Wait-ForStatus -TrackingId $submit.trackingId -ExpectedStatuses @("Escalated") | Out-Null
+
+    Restart-ApprovalService
+    Approve-SubmissionWithRetry -TrackingId $submit.trackingId
+
+    $final = Wait-ForStatus -TrackingId $submit.trackingId -ExpectedStatuses @("Paid")
+    Write-Pass "INV-1003-RESTART survives approval service restart (trackingId=$($submit.trackingId), status=$($final.status))"
+}
+catch {
+    Write-Fail "INV-1003-RESTART service restart and resume — $($_.Exception.Message)"
     $failures++
 }
 

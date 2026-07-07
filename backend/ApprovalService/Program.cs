@@ -1,12 +1,17 @@
+using ApprovalService.Middleware;
 using ApprovalService.Routes;
 using ApprovalService.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.Logging.AddJsonConsole(options => options.IncludeScopes = true);
+
 builder.Services.AddDaprClient();
 builder.Services.AddSingleton<ISubmissionStateStore, DaprSubmissionStateStore>();
 builder.Services.AddSingleton<IPolicySettingsStore, DaprPolicySettingsStore>();
-builder.Services.AddSingleton<IInvoiceAiProvider, StubInvoiceAiProvider>();
+builder.Services.AddSingleton<DaprSecretsProvider>();
+builder.Services.AddHostedService<DaprSecretsBootstrapper>();
+builder.Services.AddConfiguredInvoiceAiProvider(builder.Configuration);
 builder.Services.AddSingleton<PolicyEngine>();
 builder.Services.AddSingleton<ApprovalWorkflowProcessor>();
 builder.Services.AddSingleton<ApprovalDecisionHandler>();
@@ -22,6 +27,7 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 }
 
+app.UseMiddleware<CorrelationIdScopeMiddleware>();
 app.UseCloudEvents();
 
 app.MapApprovalRoutes();

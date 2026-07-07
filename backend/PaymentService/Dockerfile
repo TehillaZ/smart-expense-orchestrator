@@ -20,6 +20,12 @@ RUN dotnet publish "PaymentService.csproj" \
     /p:UseAppHost=false
 
 FROM runtime AS final
+USER root
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends curl \
+    && rm -rf /var/lib/apt/lists/*
+HEALTHCHECK --interval=15s --timeout=3s --start-period=20s --retries=3 \
+  CMD curl -f http://localhost:8080/health || exit 1
 USER $APP_UID
 COPY --from=build /app/publish .
 ENTRYPOINT ["dotnet", "PaymentService.dll"]

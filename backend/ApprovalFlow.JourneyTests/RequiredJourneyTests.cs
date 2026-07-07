@@ -133,4 +133,45 @@ public class RequiredJourneyTests
         Assert.Equal(PaymentStatuses.Paid, secondState!.Status);
         Assert.Equal(2, harness.PaymentPublishCount);
     }
+
+    [Fact]
+    public async Task Journey_EscalatedItem_ApprovesAfterSimulatedServiceRestart()
+    {
+        var harness = JourneyHarness.Create();
+
+        var creation = await harness.SubmitAsync("Acme Corp", "INV-1003", 500m, "meals");
+        var trackingId = creation.Submission.TrackingId;
+
+        var escalated = await harness.GetWorkflowStateAsync(trackingId);
+        Assert.NotNull(escalated);
+        Assert.Equal(ApprovalStatuses.Escalated, escalated!.Status);
+
+        var (response, errors) = await harness.ApproveAfterSimulatedServiceRestartAsync(trackingId);
+
+        Assert.Empty(errors);
+        Assert.NotNull(response);
+        Assert.Equal(ApprovalStatuses.HumanApproved, response!.Status);
+
+        var paid = await harness.GetWorkflowStateAsync(trackingId);
+        Assert.NotNull(paid);
+        Assert.Equal(PaymentStatuses.Paid, paid!.Status);
+        Assert.Equal(1, harness.PaymentPublishCount);
+    }
+
+    [Fact]
+    public async Task Journey_INV1007_ConcurrentDuplicateSubmissions_ProduceSinglePayment()
+    {
+        var harness = JourneyHarness.Create();
+
+        var results = await harness.SubmitConcurrentlyAsync(3, "Acme Corp", "INV-1007", 120m, "meals");
+        var trackingIds = results.Select(result => result.Submission.TrackingId).Distinct().ToArray();
+
+        Assert.Single(trackingIds);
+        Assert.Contains(results, result => !result.IsDuplicate);
+
+        var state = await harness.GetWorkflowStateAsync(trackingIds[0]);
+        Assert.NotNull(state);
+        Assert.Equal(PaymentStatuses.Paid, state!.Status);
+        Assert.Equal(1, harness.PaymentPublishCount);
+    }
 }
