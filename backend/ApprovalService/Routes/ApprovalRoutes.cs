@@ -26,7 +26,9 @@ public static class ApprovalRoutes
                         state.AiRecommendation ?? "Escalate",
                         state.AiConfidence ?? 0m,
                         state.CitedRules ?? [],
-                        state.Reason))
+                        state.Reason,
+                        state.HumanDecision,
+                        state.HumanDecisionComment))
                     .ToArray();
 
                 logger.LogInformation("Returned {Count} escalated submissions.", queue.Length);

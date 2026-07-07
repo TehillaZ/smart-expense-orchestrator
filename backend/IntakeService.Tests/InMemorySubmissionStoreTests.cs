@@ -46,9 +46,43 @@ public class InMemorySubmissionStoreTests
         var duplicate = await store.CreateSubmissionAsync(request, "correlation-b");
 
         Assert.False(first.IsDuplicate);
+        Assert.Equal(0, first.Submission.DuplicateResubmitCount);
         Assert.True(duplicate.IsDuplicate);
         Assert.Equal(first.Submission.TrackingId, duplicate.Submission.TrackingId);
         Assert.Equal("correlation-a", duplicate.Submission.CorrelationId);
+        Assert.Equal(1, duplicate.Submission.DuplicateResubmitCount);
+
+        var fetched = await store.GetSubmissionAsync(first.Submission.TrackingId);
+        Assert.NotNull(fetched);
+        Assert.Equal(1, fetched!.DuplicateResubmitCount);
+    }
+
+    [Fact]
+    public async Task FindByCorrelationIdAsync_ReturnsMatchingSubmission()
+    {
+        var store = new InMemorySubmissionStore();
+        var created = await store.CreateSubmissionAsync(
+            new SubmissionRequest("Acme Corp", "INV-3001", 100m, "Travel"),
+            "correlation-find-me");
+
+        var found = await store.FindByCorrelationIdAsync("correlation-find-me");
+
+        Assert.NotNull(found);
+        Assert.Equal(created.Submission.TrackingId, found!.TrackingId);
+    }
+
+    [Fact]
+    public async Task CreateSubmissionAsync_WithRepeatedDuplicates_IncrementsDuplicateResubmitCount()
+    {
+        var store = new InMemorySubmissionStore();
+        var request = new SubmissionRequest("Acme Corp", "INV-1010", 50m, "Travel");
+
+        await store.CreateSubmissionAsync(request, "correlation-1");
+        var second = await store.CreateSubmissionAsync(request, "correlation-2");
+        var third = await store.CreateSubmissionAsync(request, "correlation-3");
+
+        Assert.Equal(1, second.Submission.DuplicateResubmitCount);
+        Assert.Equal(2, third.Submission.DuplicateResubmitCount);
     }
 
     [Fact]

@@ -20,6 +20,12 @@ export function AppLayout() {
     }
   }, [role, location.pathname, navigate])
 
+  useEffect(() => {
+    if (window.matchMedia('(max-width: 1023px)').matches) {
+      setIsSidebarOpen(false)
+    }
+  }, [])
+
   return (
     <div className="flex min-h-screen bg-slate-50 font-sans text-slate-900">
       <Sidebar
@@ -34,7 +40,7 @@ export function AppLayout() {
           isSidebarOpen={isSidebarOpen}
           onOpenSidebar={() => setIsSidebarOpen(true)}
         />
-        <main className="flex-1 overflow-y-auto p-8">
+        <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
           <div className="mx-auto max-w-7xl">
             <Outlet context={{ role }} />
           </div>

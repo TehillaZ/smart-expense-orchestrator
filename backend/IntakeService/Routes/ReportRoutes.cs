@@ -39,6 +39,37 @@ public static class ReportRoutes
         })
         .WithName("GetReportingSummary");
 
+        app.MapGet("/reports/compliance", async (
+            ISubmissionStore submissionStore,
+            DaprPolicyLookup policyLookup,
+            ILoggerFactory loggerFactory) =>
+        {
+            var logger = loggerFactory.CreateLogger("ReportRoutes");
+
+            try
+            {
+                var submissions = await submissionStore.ListSubmissionsAsync();
+                var policy = await policyLookup.GetAsync();
+                var report = ComplianceReportBuilder.Build(
+                    submissions,
+                    policy.AutonomyCeiling,
+                    policy.PolicyVersion);
+
+                logger.LogInformation(
+                    "Returned compliance report for {AutoApprovedReviewedCount} auto-approved submissions with {ViolationCount} violations.",
+                    report.AutoApprovedReviewedCount,
+                    report.ViolationCount);
+
+                return Results.Ok(report);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Failed to build auto-approval compliance report.");
+                return Results.StatusCode(StatusCodes.Status500InternalServerError);
+            }
+        })
+        .WithName("GetComplianceReport");
+
         return app;
     }
 

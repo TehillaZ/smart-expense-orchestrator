@@ -15,7 +15,7 @@ function formatCurrency(amount: number): string {
 
 export function AuditTrailPage() {
   const [searchParams] = useSearchParams()
-  const [trackingId, setTrackingId] = useState('')
+  const [identifier, setIdentifier] = useState('')
   const [audit, setAudit] = useState<AuditTrailResponse | null>(null)
   const [policy, setPolicy] = useState<PolicySettings | null>(null)
   const [isLoading, setIsLoading] = useState(false)
@@ -24,7 +24,7 @@ export function AuditTrailPage() {
   const runSearch = useCallback(async (id: string) => {
     const trimmedId = id.trim()
     if (!trimmedId) {
-      setErrorMessage('Enter a tracking id to search.')
+      setErrorMessage('Enter a tracking id or correlation id to search.')
       return
     }
 
@@ -52,16 +52,19 @@ export function AuditTrailPage() {
   }, [])
 
   useEffect(() => {
-    const fromQuery = searchParams.get('trackingId')
-    if (fromQuery) {
-      setTrackingId(fromQuery)
-      void runSearch(fromQuery)
+    const fromTracking = searchParams.get('trackingId')
+    const fromCorrelation = searchParams.get('correlationId')
+    const initial = fromTracking ?? fromCorrelation
+
+    if (initial) {
+      setIdentifier(initial)
+      void runSearch(initial)
     }
   }, [searchParams, runSearch])
 
   async function handleSearch(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    await runSearch(trackingId)
+    await runSearch(identifier)
   }
 
   async function copyCorrelationId() {
@@ -77,8 +80,8 @@ export function AuditTrailPage() {
       <div>
         <h2 className="text-2xl font-semibold tracking-tight text-slate-900">Audit Trail</h2>
         <p className="mt-1 text-sm text-slate-600">
-          Search by tracking id to inspect policy rules, AI reasoning, human decisions, payment
-          outcomes, and autonomy limit compliance tied to one correlation id.
+          Search by tracking id or correlation id to inspect policy rules, AI reasoning, human
+          decisions, payment outcomes, and autonomy limit compliance.
         </p>
       </div>
 
@@ -87,14 +90,14 @@ export function AuditTrailPage() {
         onSubmit={(event) => void handleSearch(event)}
       >
         <div className="min-w-[16rem] flex-1">
-          <label htmlFor="trackingId" className="mb-1.5 block text-sm font-medium text-slate-700">
-            Tracking ID
+          <label htmlFor="audit-identifier" className="mb-1.5 block text-sm font-medium text-slate-700">
+            Tracking ID or Correlation ID
           </label>
           <input
-            id="trackingId"
-            value={trackingId}
-            onChange={(event) => setTrackingId(event.target.value)}
-            placeholder="Paste a submission tracking id"
+            id="audit-identifier"
+            value={identifier}
+            onChange={(event) => setIdentifier(event.target.value)}
+            placeholder="Paste a tracking id or correlation id"
             className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
           />
         </div>

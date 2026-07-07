@@ -7,8 +7,8 @@ public static class AuditRoutes
 {
     public static IEndpointRouteBuilder MapAuditRoutes(this IEndpointRouteBuilder app)
     {
-        app.MapGet("/audit/{trackingId}", async (
-            string trackingId,
+        app.MapGet("/audit/{identifier}", async (
+            string identifier,
             ISubmissionStore store,
             DaprNotificationLookup notificationLookup,
             ILoggerFactory loggerFactory) =>
@@ -17,14 +17,18 @@ public static class AuditRoutes
 
             try
             {
-                var submission = await store.GetSubmissionAsync(trackingId);
+                var submission = await store.GetSubmissionAsync(identifier)
+                    ?? await store.FindByCorrelationIdAsync(identifier);
+
                 if (submission is null)
                 {
                     logger.LogWarning(
-                        "Audit trail requested for unknown submission {TrackingId}.",
-                        trackingId);
+                        "Audit trail requested for unknown identifier {Identifier}.",
+                        identifier);
                     return Results.NotFound(new { message = "Submission was not found." });
                 }
+
+                var trackingId = submission.TrackingId;
 
                 using var scope = logger.BeginScope(new Dictionary<string, object>
                 {
@@ -44,7 +48,7 @@ public static class AuditRoutes
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "Failed to build audit trail for submission {TrackingId}.", trackingId);
+                logger.LogError(ex, "Failed to build audit trail for identifier {Identifier}.", identifier);
                 return Results.StatusCode(StatusCodes.Status500InternalServerError);
             }
         })

@@ -10,10 +10,7 @@ public static class DashboardMetricsProjector
     {
         return request.EventType switch
         {
-            MetricsEventTypes.SubmissionCreated => current with
-            {
-                TotalSubmissions = current.TotalSubmissions + 1,
-            },
+            MetricsEventTypes.SubmissionCreated => ApplySubmissionCreated(current),
             MetricsEventTypes.AutoApproved => current with
             {
                 AutoApprovedCount = current.AutoApprovedCount + 1,
@@ -97,7 +94,30 @@ public static class DashboardMetricsProjector
             metrics.HumanApprovedAmount,
             autoApprovalRate,
             escalationRate,
+            metrics.SubmissionsTodayCount,
             readModel.RecentActivity);
+    }
+
+    private static DashboardMetrics ApplySubmissionCreated(DashboardMetrics current)
+    {
+        var today = DateOnly.FromDateTime(DateTime.UtcNow).ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture);
+
+        if (!string.Equals(current.SubmissionsTodayUtcDate, today, StringComparison.Ordinal))
+        {
+            return current with
+            {
+                TotalSubmissions = current.TotalSubmissions + 1,
+                SubmissionsTodayCount = 1,
+                SubmissionsTodayUtcDate = today,
+            };
+        }
+
+        return current with
+        {
+            TotalSubmissions = current.TotalSubmissions + 1,
+            SubmissionsTodayCount = current.SubmissionsTodayCount + 1,
+            SubmissionsTodayUtcDate = today,
+        };
     }
 
     public static string BuildProcessedEventKey(string trackingId, string eventType) =>

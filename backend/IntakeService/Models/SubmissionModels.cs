@@ -29,7 +29,8 @@ public sealed record SubmissionStatusResponse(
     IReadOnlyList<string>? CitedRules = null,
     string? PolicyVersion = null,
     string? HumanDecision = null,
-    string? HumanDecisionComment = null);
+    string? HumanDecisionComment = null,
+    int DuplicateResubmitCount = 0);
 
 public sealed record ValidationErrorResponse(
     IReadOnlyList<string> Errors);
