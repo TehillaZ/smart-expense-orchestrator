@@ -23,6 +23,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\ApprovalFlow.Observability\ApprovalFlow.Observability.csproj" />
+    <ProjectReference Include="..\ApprovalFlow.PolicyRag.Tests\ApprovalFlow.PolicyRag.Tests.csproj" />
     <ProjectReference Include="..\ApprovalService\ApprovalService.csproj" />
   </ItemGroup>
 

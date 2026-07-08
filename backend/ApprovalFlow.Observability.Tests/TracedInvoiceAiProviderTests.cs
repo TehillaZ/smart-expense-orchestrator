@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using ApprovalFlow.Observability;
+using ApprovalFlow.PolicyRag.Tests;
 using ApprovalService.Models;
 using ApprovalService.Services;
 
@@ -21,7 +22,7 @@ public class TracedInvoiceAiProviderTests
         ActivitySource.AddActivityListener(listener);
 
         var provider = new TracedInvoiceAiProvider(
-            new StubInvoiceAiProvider(),
+            new StubInvoiceAiProvider(PolicyRagTestSupport.CreateRetriever()),
             new ObservabilityMetrics());
 
         var submission = new SubmissionReceivedEvent(

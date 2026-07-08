@@ -33,6 +33,10 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556F}") = "ApprovalFlow.Observability
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556F}") = "ApprovalFlow.Observability.Tests", "ApprovalFlow.Observability.Tests\ApprovalFlow.Observability.Tests.csproj", "{B4C5D6E7-F8A9-0123-BCDE-F12345678912}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556F}") = "ApprovalFlow.PolicyRag", "ApprovalFlow.PolicyRag\ApprovalFlow.PolicyRag.csproj", "{C5D6E7F8-A9B0-1234-CDEF-12345678913}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556F}") = "ApprovalFlow.PolicyRag.Tests", "ApprovalFlow.PolicyRag.Tests\ApprovalFlow.PolicyRag.Tests.csproj", "{D6E7F8A9-B0C1-2345-DEF0-23456789014}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -99,6 +103,14 @@ Global
 		{B4C5D6E7-F8A9-0123-BCDE-F12345678912}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B4C5D6E7-F8A9-0123-BCDE-F12345678912}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B4C5D6E7-F8A9-0123-BCDE-F12345678912}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C5D6E7F8-A9B0-1234-CDEF-12345678913}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C5D6E7F8-A9B0-1234-CDEF-12345678913}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C5D6E7F8-A9B0-1234-CDEF-12345678913}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C5D6E7F8-A9B0-1234-CDEF-12345678913}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D6E7F8A9-B0C1-2345-DEF0-23456789014}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D6E7F8A9-B0C1-2345-DEF0-23456789014}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D6E7F8A9-B0C1-2345-DEF0-23456789014}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D6E7F8A9-B0C1-2345-DEF0-23456789014}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

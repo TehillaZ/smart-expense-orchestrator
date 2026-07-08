@@ -6,7 +6,7 @@ namespace ApprovalService.Tests;
 
 public class SubmissionReceivedHandlerTests
 {
-    private static SubmissionReceivedEvent SampleEvent(string trackingId = "tracking-1", decimal amount = 100m, string category = "Office Supplies") =>
+    private static SubmissionReceivedEvent SampleEvent(string trackingId = "tracking-1", decimal amount = 100m, string category = "meals") =>
         new(trackingId, "correlation-1", "Acme Corp", "INV-1001", amount, category);
 
     [Fact]
@@ -83,7 +83,7 @@ public class SubmissionReceivedHandlerTests
             "Acme Corp",
             "INV-1001",
             100m,
-            "Office Supplies",
+            "meals",
             ApprovalStatuses.AutoApproved,
             "Auto approved.",
             "Approve",
@@ -112,7 +112,7 @@ public class SubmissionReceivedHandlerTests
         return new ApprovalWorkflowProcessor(
             store,
             settings,
-            aiProvider ?? new StubInvoiceAiProvider(),
+            aiProvider ?? PolicyRagTestHelper.CreateStubProvider(),
             new PolicyEngine(),
             publisher,
             new NoOpMetricsRecorder(),
