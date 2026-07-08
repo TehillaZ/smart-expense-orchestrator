@@ -1,4 +1,4 @@
-using Dapr.Client;
+using ApprovalFlow.Reliability.Outbox;
 using IntakeService.Models;
 using IntakeService.Services;
 
@@ -15,7 +15,7 @@ public static class SubmissionRoutes
             SubmissionRequest request,
             ISubmissionStore store,
             IDashboardMetricsStore metricsStore,
-            DaprClient daprClient,
+            IOutboxService outboxService,
             ILoggerFactory loggerFactory) =>
         {
             var correlationId = Guid.NewGuid().ToString();
@@ -49,18 +49,16 @@ public static class SubmissionRoutes
                     submission.Amount,
                     submission.Category);
 
-                var published = false;
-
                 try
                 {
-                    await daprClient.PublishEventAsync(
+                    await outboxService.EnqueueAsync(
+                        $"submission.received:{submission.TrackingId}",
                         PubSubName,
                         SubmissionReceivedTopic,
                         submissionEvent);
-                    published = true;
 
                     logger.LogInformation(
-                        "Published {Topic} for submission {TrackingId} with correlation {CorrelationId}.",
+                        "Queued {Topic} outbox message for submission {TrackingId} with correlation {CorrelationId}.",
                         SubmissionReceivedTopic,
                         submission.TrackingId,
                         correlationId);
@@ -69,35 +67,10 @@ public static class SubmissionRoutes
                 {
                     logger.LogError(
                         ex,
-                        "Failed to publish {Topic} event for submission {TrackingId} with correlation {CorrelationId}.",
+                        "Failed to queue {Topic} outbox message for submission {TrackingId} with correlation {CorrelationId}.",
                         SubmissionReceivedTopic,
                         submission.TrackingId,
                         correlationId);
-                }
-
-                if (!published)
-                {
-                    try
-                    {
-                        await daprClient.InvokeMethodAsync(
-                            HttpMethod.Post,
-                            DaprServiceIds.ApprovalService,
-                            "internal/submissions/process",
-                            submissionEvent);
-
-                        logger.LogWarning(
-                            "Used direct approval invocation fallback for submission {TrackingId} with correlation {CorrelationId}.",
-                            submission.TrackingId,
-                            correlationId);
-                    }
-                    catch (Exception ex)
-                    {
-                        logger.LogError(
-                            ex,
-                            "Failed to invoke direct approval processing for submission {TrackingId} with correlation {CorrelationId}.",
-                            submission.TrackingId,
-                            correlationId);
-                    }
                 }
 
                 try

@@ -1,3 +1,4 @@
+using ApprovalFlow.Reliability.Outbox;
 using ApprovalService.Middleware;
 using ApprovalService.Routes;
 using ApprovalService.Services;
@@ -16,6 +17,11 @@ builder.Services.AddSingleton<PolicyEngine>();
 builder.Services.AddSingleton<ApprovalWorkflowProcessor>();
 builder.Services.AddSingleton<ApprovalDecisionHandler>();
 builder.Services.AddSingleton<SubmissionReceivedHandler>();
+builder.Services.AddSingleton<IOutboxTransport, ApprovalOutboxTransport>();
+builder.Services.AddDaprOutbox(options =>
+{
+    options.Scope = "approval";
+});
 builder.Services.AddSingleton<IPaymentRequestPublisher, DaprPaymentRequestPublisher>();
 builder.Services.AddSingleton<IMetricsRecorder, DaprMetricsRecorder>();
 builder.Services.AddOpenApi();

@@ -1,5 +1,5 @@
+using ApprovalFlow.Reliability.Outbox;
 using ApprovalService.Models;
-using Dapr.Client;
 
 namespace ApprovalService.Services;
 
@@ -13,12 +13,12 @@ public sealed class DaprPaymentRequestPublisher : IPaymentRequestPublisher
     private const string PubSubName = "order-pubsub";
     private const string PaymentRequestedTopic = "payment.requested";
 
-    private readonly DaprClient daprClient;
+    private readonly IOutboxService outboxService;
     private readonly ILogger<DaprPaymentRequestPublisher> logger;
 
-    public DaprPaymentRequestPublisher(DaprClient daprClient, ILogger<DaprPaymentRequestPublisher> logger)
+    public DaprPaymentRequestPublisher(IOutboxService outboxService, ILogger<DaprPaymentRequestPublisher> logger)
     {
-        this.daprClient = daprClient;
+        this.outboxService = outboxService;
         this.logger = logger;
     }
 
@@ -33,37 +33,15 @@ public sealed class DaprPaymentRequestPublisher : IPaymentRequestPublisher
             state.Category,
             SubmissionIdempotencyKeys.Build(state.Vendor, state.InvoiceNumber, state.Amount));
 
-        try
-        {
-            await daprClient.PublishEventAsync(PubSubName, PaymentRequestedTopic, paymentEvent);
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(
-                ex,
-                "Failed to publish {Topic} for submission {TrackingId}.",
-                PaymentRequestedTopic,
-                state.TrackingId);
-        }
-
-        try
-        {
-            await daprClient.InvokeMethodAsync(
-                HttpMethod.Post,
-                DaprServiceIds.PaymentService,
-                "internal/payments/process",
-                paymentEvent);
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(
-                ex,
-                "Failed to invoke direct payment processing for submission {TrackingId}.",
-                state.TrackingId);
-        }
+        var idempotencyKey = $"payment.requested:{state.TrackingId}";
+        await outboxService.EnqueueAsync(
+            idempotencyKey,
+            PubSubName,
+            PaymentRequestedTopic,
+            paymentEvent);
 
         logger.LogInformation(
-            "Requested payment processing for submission {TrackingId} with correlation {CorrelationId}.",
+            "Queued payment.requested outbox message for submission {TrackingId} with correlation {CorrelationId}.",
             state.TrackingId,
             state.CorrelationId);
     }
