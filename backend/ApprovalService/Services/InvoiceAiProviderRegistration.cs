@@ -1,5 +1,6 @@
 using ApprovalFlow.Observability;
 using ApprovalFlow.Reliability.Throttling;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
 
 namespace ApprovalService.Services;
@@ -14,6 +15,7 @@ public static class InvoiceAiProviderRegistration
             configuration.GetSection(LlmProviderOptions.SectionName));
         services.Configure<RateLimitOptions>(
             configuration.GetSection(RateLimitOptions.SectionName));
+        services.TryAddSingleton<ObservabilityMetrics>();
 
         var providerName = configuration
             .GetSection(LlmProviderOptions.SectionName)

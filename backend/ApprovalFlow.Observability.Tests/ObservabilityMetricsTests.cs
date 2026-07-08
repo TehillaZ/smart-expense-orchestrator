@@ -2,6 +2,7 @@ using ApprovalFlow.Observability;
 
 namespace ApprovalFlow.Observability.Tests;
 
+[Collection("Observability")]
 public class ObservabilityMetricsTests
 {
     [Fact]

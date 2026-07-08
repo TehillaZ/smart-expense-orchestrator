@@ -5,6 +5,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 
 namespace ApprovalFlow.Observability.Tests;
 
+[Collection("Observability")]
 public class TraceLogScopeTests
 {
     [Fact]

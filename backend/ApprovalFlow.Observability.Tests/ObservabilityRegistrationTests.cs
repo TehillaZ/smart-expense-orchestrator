@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Builder;
 
 namespace ApprovalFlow.Observability.Tests;
 
+[Collection("Observability")]
 public class ObservabilityRegistrationTests
 {
     [Fact]
@@ -22,13 +23,16 @@ public class ObservabilityRegistrationTests
         builder.Configuration["Observability:Enabled"] = "false";
         builder.AddApprovalFlowObservability("TestService");
 
+        var baseline = activities.Count;
+
         using var activity = ObservabilityActivitySources.Instance.StartActivity("gateway.request");
         using var child = ObservabilityActivitySources.Instance.StartActivity(
             "intake.submission",
             ActivityKind.Internal,
             activity?.Context ?? default);
 
-        Assert.Equal(2, activities.Count);
+        var created = activities.Skip(baseline).ToList();
+        Assert.Equal(2, created.Count);
         Assert.Equal(activity?.TraceId, child?.TraceId);
     }
 }

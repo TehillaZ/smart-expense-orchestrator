@@ -5,6 +5,7 @@ using ApprovalService.Services;
 
 namespace ApprovalFlow.Observability.Tests;
 
+[Collection("Observability")]
 public class TracedInvoiceAiProviderTests
 {
     [Fact]
