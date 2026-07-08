@@ -1,3 +1,4 @@
+using ApprovalFlow.Reliability.Outbox;
 using IntakeService.Middleware;
 using IntakeService.Routes;
 using IntakeService.Services;
@@ -11,6 +12,11 @@ builder.Services.AddSingleton<ISubmissionStore, DaprSubmissionStore>();
 builder.Services.AddSingleton<IDashboardMetricsStore, DaprDashboardMetricsStore>();
 builder.Services.AddSingleton<DaprNotificationLookup>();
 builder.Services.AddSingleton<DaprPolicyLookup>();
+builder.Services.AddSingleton<IOutboxTransport, IntakeOutboxTransport>();
+builder.Services.AddDaprOutbox(options =>
+{
+    options.Scope = "intake";
+});
 builder.Services.AddOpenApi();
 
 var app = builder.Build();

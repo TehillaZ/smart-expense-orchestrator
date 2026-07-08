@@ -1,3 +1,6 @@
+using ApprovalFlow.Reliability.Throttling;
+using Microsoft.Extensions.Options;
+
 namespace ApprovalService.Services;
 
 public static class InvoiceAiProviderRegistration
@@ -8,6 +11,8 @@ public static class InvoiceAiProviderRegistration
     {
         services.Configure<LlmProviderOptions>(
             configuration.GetSection(LlmProviderOptions.SectionName));
+        services.Configure<RateLimitOptions>(
+            configuration.GetSection(RateLimitOptions.SectionName));
 
         var providerName = configuration
             .GetSection(LlmProviderOptions.SectionName)
@@ -16,7 +21,16 @@ public static class InvoiceAiProviderRegistration
         switch (providerName.Trim().ToUpperInvariant())
         {
             case var name when string.Equals(name, LlmProviderNames.Stub, StringComparison.OrdinalIgnoreCase):
-                services.AddSingleton<IInvoiceAiProvider, StubInvoiceAiProvider>();
+                services.AddSingleton<StubInvoiceAiProvider>();
+                services.AddSingleton<IInvoiceAiProvider>(serviceProvider =>
+                {
+                    var innerProvider = serviceProvider.GetRequiredService<StubInvoiceAiProvider>();
+                    var rateLimitOptions = serviceProvider.GetRequiredService<IOptions<RateLimitOptions>>().Value;
+                    var rateLimitedGate = new RateLimitedGate(
+                        rateLimitOptions.PermitLimit,
+                        TimeSpan.FromSeconds(rateLimitOptions.WindowSeconds));
+                    return new ThrottledInvoiceAiProvider(innerProvider, rateLimitedGate);
+                });
                 break;
             default:
                 throw new InvalidOperationException(

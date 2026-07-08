@@ -16,7 +16,7 @@ public class InvoiceAiProviderConfigurationTests
         using var provider = services.BuildServiceProvider();
         var resolved = provider.GetRequiredService<IInvoiceAiProvider>();
 
-        Assert.IsType<StubInvoiceAiProvider>(resolved);
+        Assert.IsType<ThrottledInvoiceAiProvider>(resolved);
     }
 
     [Fact]
@@ -29,7 +29,7 @@ public class InvoiceAiProviderConfigurationTests
         using var provider = services.BuildServiceProvider();
         var resolved = provider.GetRequiredService<IInvoiceAiProvider>();
 
-        Assert.IsType<StubInvoiceAiProvider>(resolved);
+        Assert.IsType<ThrottledInvoiceAiProvider>(resolved);
     }
 
     [Fact]
