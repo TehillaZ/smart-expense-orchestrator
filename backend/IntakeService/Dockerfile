@@ -9,9 +9,11 @@ EXPOSE 8080
 
 FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 WORKDIR /src
+COPY ["backend/ApprovalFlow.Observability/ApprovalFlow.Observability.csproj", "backend/ApprovalFlow.Observability/"]
 COPY ["backend/ApprovalFlow.Reliability/ApprovalFlow.Reliability.csproj", "backend/ApprovalFlow.Reliability/"]
 COPY ["backend/IntakeService/IntakeService.csproj", "backend/IntakeService/"]
 RUN dotnet restore "backend/IntakeService/IntakeService.csproj"
+COPY ["backend/ApprovalFlow.Observability/", "backend/ApprovalFlow.Observability/"]
 COPY ["backend/ApprovalFlow.Reliability/", "backend/ApprovalFlow.Reliability/"]
 COPY ["backend/IntakeService/", "backend/IntakeService/"]
 WORKDIR "/src/backend/IntakeService"
