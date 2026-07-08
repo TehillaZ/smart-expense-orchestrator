@@ -9,8 +9,10 @@ EXPOSE 8080
 
 FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 WORKDIR /src
+COPY ["backend/ApprovalFlow.Reliability/ApprovalFlow.Reliability.csproj", "backend/ApprovalFlow.Reliability/"]
 COPY ["backend/ApprovalService/ApprovalService.csproj", "backend/ApprovalService/"]
 RUN dotnet restore "backend/ApprovalService/ApprovalService.csproj"
+COPY ["backend/ApprovalFlow.Reliability/", "backend/ApprovalFlow.Reliability/"]
 COPY ["backend/ApprovalService/", "backend/ApprovalService/"]
 WORKDIR "/src/backend/ApprovalService"
 RUN dotnet publish "ApprovalService.csproj" \
