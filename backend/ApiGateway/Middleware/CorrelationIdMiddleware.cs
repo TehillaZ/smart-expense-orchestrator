@@ -1,8 +1,11 @@
+using ApprovalFlow.Observability;
+using Microsoft.Extensions.Logging;
+
 namespace ApiGateway.Middleware;
 
 public sealed class CorrelationIdMiddleware
 {
-    public const string HeaderName = "X-Correlation-Id";
+    public const string HeaderName = CorrelationConstants.HeaderName;
 
     private readonly RequestDelegate next;
     private readonly ILogger<CorrelationIdMiddleware> logger;
@@ -25,10 +28,7 @@ public sealed class CorrelationIdMiddleware
         context.Request.Headers[HeaderName] = correlationId;
         context.Response.Headers[HeaderName] = correlationId;
 
-        using (logger.BeginScope(new Dictionary<string, object>
-        {
-            ["CorrelationId"] = correlationId
-        }))
+        using (TraceLogScope.Begin(logger, correlationId))
         {
             await next(context);
         }

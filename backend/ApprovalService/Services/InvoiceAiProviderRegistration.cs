@@ -1,3 +1,4 @@
+using ApprovalFlow.Observability;
 using ApprovalFlow.Reliability.Throttling;
 using Microsoft.Extensions.Options;
 
@@ -29,7 +30,9 @@ public static class InvoiceAiProviderRegistration
                     var rateLimitedGate = new RateLimitedGate(
                         rateLimitOptions.PermitLimit,
                         TimeSpan.FromSeconds(rateLimitOptions.WindowSeconds));
-                    return new ThrottledInvoiceAiProvider(innerProvider, rateLimitedGate);
+                    var throttledProvider = new ThrottledInvoiceAiProvider(innerProvider, rateLimitedGate);
+                    var metrics = serviceProvider.GetRequiredService<ObservabilityMetrics>();
+                    return new TracedInvoiceAiProvider(throttledProvider, metrics);
                 });
                 break;
             default:

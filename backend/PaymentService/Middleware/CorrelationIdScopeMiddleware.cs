@@ -1,8 +1,11 @@
+using ApprovalFlow.Observability;
+using Microsoft.Extensions.Logging;
+
 namespace PaymentService.Middleware;
 
 public sealed class CorrelationIdScopeMiddleware
 {
-    public const string HeaderName = "X-Correlation-Id";
+    public const string HeaderName = CorrelationConstants.HeaderName;
 
     private readonly RequestDelegate next;
     private readonly ILogger<CorrelationIdScopeMiddleware> logger;
@@ -23,10 +26,7 @@ public sealed class CorrelationIdScopeMiddleware
 
         context.Response.Headers[HeaderName] = correlationId;
 
-        using (logger.BeginScope(new Dictionary<string, object>
-        {
-            ["CorrelationId"] = correlationId
-        }))
+        using (TraceLogScope.Begin(logger, correlationId))
         {
             await next(context);
         }

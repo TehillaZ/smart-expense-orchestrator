@@ -1,8 +1,11 @@
+using ApprovalFlow.Observability;
 using NotificationService.Middleware;
 using NotificationService.Routes;
 using NotificationService.Services;
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.AddApprovalFlowObservability("NotificationService");
 
 builder.Logging.AddJsonConsole(options => options.IncludeScopes = true);
 
@@ -22,6 +25,7 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 }
 
+app.UseApprovalFlowObservability();
 app.UseMiddleware<CorrelationIdScopeMiddleware>();
 app.UseCloudEvents();
 

@@ -2,12 +2,15 @@ using System.Text;
 using ApiGateway.Auth;
 using ApiGateway.Middleware;
 using ApiGateway.Routes;
+using ApprovalFlow.Observability;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.IdentityModel.Tokens;
 using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.AddApprovalFlowObservability("ApiGateway");
 
 builder.Logging.AddJsonConsole(options => options.IncludeScopes = true);
 
@@ -63,6 +66,7 @@ builder.Services.AddRateLimiter(options =>
 
 var app = builder.Build();
 
+app.UseApprovalFlowObservability();
 app.UseRateLimiter();
 app.UseMiddleware<CorrelationIdMiddleware>();
 app.UseAuthentication();

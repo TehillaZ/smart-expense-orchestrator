@@ -1,4 +1,14 @@
 services:
+  jaeger:
+    image: jaegertracing/all-in-one:1.62
+    ports:
+      - "16686:16686"
+      - "4317:4317"
+    environment:
+      COLLECTOR_OTLP_ENABLED: "true"
+    networks:
+      - approval-network
+
   apigateway:
     image: ${DOCKER_REGISTRY-}apigateway
     build:
@@ -8,7 +18,11 @@ services:
       - "8080:8080"
     environment:
       Jwt__SigningKey: ${JWT_SIGNING_KEY:-docker-dev-signing-key-min-32-chars}
+      Observability__OtlpEndpoint: http://jaeger:4317
+      Observability__Enabled: "true"
     depends_on:
+      jaeger:
+        condition: service_started
       intakeservice:
         condition: service_healthy
       approvalservice:
@@ -43,9 +57,14 @@ services:
       dockerfile: backend/IntakeService/Dockerfile
     ports:
       - "5001:8080"
+    environment:
+      Observability__OtlpEndpoint: http://jaeger:4317
+      Observability__Enabled: "true"
     depends_on:
       redis:
         condition: service_healthy
+      jaeger:
+        condition: service_started
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
       interval: 15s
@@ -77,9 +96,14 @@ services:
       dockerfile: backend/ApprovalService/Dockerfile
     ports:
       - "5002:8080"
+    environment:
+      Observability__OtlpEndpoint: http://jaeger:4317
+      Observability__Enabled: "true"
     depends_on:
       redis:
         condition: service_healthy
+      jaeger:
+        condition: service_started
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
       interval: 15s
@@ -111,9 +135,14 @@ services:
       dockerfile: backend/PaymentService/Dockerfile
     ports:
       - "5003:8080"
+    environment:
+      Observability__OtlpEndpoint: http://jaeger:4317
+      Observability__Enabled: "true"
     depends_on:
       redis:
         condition: service_healthy
+      jaeger:
+        condition: service_started
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
       interval: 15s
@@ -145,9 +174,14 @@ services:
       dockerfile: backend/NotificationService/Dockerfile
     ports:
       - "5004:8080"
+    environment:
+      Observability__OtlpEndpoint: http://jaeger:4317
+      Observability__Enabled: "true"
     depends_on:
       redis:
         condition: service_healthy
+      jaeger:
+        condition: service_started
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
       interval: 15s

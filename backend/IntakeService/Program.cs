@@ -1,9 +1,12 @@
+using ApprovalFlow.Observability;
 using ApprovalFlow.Reliability.Outbox;
 using IntakeService.Middleware;
 using IntakeService.Routes;
 using IntakeService.Services;
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.AddApprovalFlowObservability("IntakeService");
 
 builder.Logging.AddJsonConsole(options => options.IncludeScopes = true);
 
@@ -26,6 +29,7 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 }
 
+app.UseApprovalFlowObservability();
 app.UseMiddleware<CorrelationIdScopeMiddleware>();
 
 app.MapSubmissionRoutes();

@@ -12,6 +12,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\ApprovalFlow.Observability\ApprovalFlow.Observability.csproj" />
     <ProjectReference Include="..\ApprovalFlow.Reliability\ApprovalFlow.Reliability.csproj" />
   </ItemGroup>
 

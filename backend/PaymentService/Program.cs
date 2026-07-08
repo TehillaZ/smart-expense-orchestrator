@@ -1,3 +1,4 @@
+using ApprovalFlow.Observability;
 using ApprovalFlow.Reliability.Outbox;
 using ApprovalFlow.Reliability.Throttling;
 using Microsoft.Extensions.Options;
@@ -6,6 +7,8 @@ using PaymentService.Routes;
 using PaymentService.Services;
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.AddApprovalFlowObservability("PaymentService");
 
 builder.Logging.AddJsonConsole(options => options.IncludeScopes = true);
 
@@ -40,6 +43,7 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 }
 
+app.UseApprovalFlowObservability();
 app.UseMiddleware<CorrelationIdScopeMiddleware>();
 app.UseCloudEvents();
 

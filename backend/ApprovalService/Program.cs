@@ -1,9 +1,12 @@
+using ApprovalFlow.Observability;
 using ApprovalFlow.Reliability.Outbox;
 using ApprovalService.Middleware;
 using ApprovalService.Routes;
 using ApprovalService.Services;
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.AddApprovalFlowObservability("ApprovalService");
 
 builder.Logging.AddJsonConsole(options => options.IncludeScopes = true);
 
@@ -33,6 +36,7 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 }
 
+app.UseApprovalFlowObservability();
 app.UseMiddleware<CorrelationIdScopeMiddleware>();
 app.UseCloudEvents();
 
