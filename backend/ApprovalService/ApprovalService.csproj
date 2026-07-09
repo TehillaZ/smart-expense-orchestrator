@@ -17,4 +17,8 @@
     <ProjectReference Include="..\ApprovalFlow.Reliability\ApprovalFlow.Reliability.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Content Include="Data\policy.md" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+
 </Project>

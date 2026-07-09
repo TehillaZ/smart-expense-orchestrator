@@ -124,6 +124,8 @@ jobs:
           for i in $(seq 1 60); do
             if curl -fsS http://localhost:8080/health >/dev/null; then
               echo "Gateway is healthy"
+              # Extra settle time for Dapr sidecars/outbox publishers after compose up.
+              sleep 20
               exit 0
             fi
             sleep 5
@@ -135,7 +137,10 @@ jobs:
 
       - name: Run compose journey verification
         shell: pwsh
-        run: pwsh -File scripts/verify-journeys.ps1 -BaseUrl http://localhost:8080 -ComposeFile infra/docker-compose.yml -WaitSeconds 5
+        run: |
+          $ErrorActionPreference = 'Stop'
+          & ./scripts/verify-journeys.ps1 -BaseUrl http://localhost:8080 -ComposeFile infra/docker-compose.yml -WaitSeconds 8
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Collect logs on failure
         if: failure()

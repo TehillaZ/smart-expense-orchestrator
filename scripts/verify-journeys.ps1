@@ -33,11 +33,11 @@ $script:SubmitterHeaders = $null
 $script:ApproverHeaders = $null
 
 function Write-Pass([string]$Message) {
-    Write-Host "[PASS] $Message" -ForegroundColor Green
+    Write-Host ("[PASS] {0}" -f $Message) -ForegroundColor Green
 }
 
 function Write-Fail([string]$Message) {
-    Write-Host "[FAIL] $Message" -ForegroundColor Red
+    Write-Host ("[FAIL] {0}" -f $Message) -ForegroundColor Red
 }
 
 function Get-AuthToken {
@@ -51,7 +51,7 @@ function Get-AuthToken {
         -ContentType "application/json"
 
     if ([string]::IsNullOrWhiteSpace($login.token)) {
-        throw "Login for role '$Role' did not return a token."
+        throw ("Login for role '{0}' did not return a token." -f $Role)
     }
 
     return $login.token
@@ -61,8 +61,8 @@ function Initialize-AuthHeaders {
     $submitterToken = Get-AuthToken -Role "Submitter"
     $approverToken = Get-AuthToken -Role "Approver"
 
-    $script:SubmitterHeaders = @{ Authorization = "Bearer $submitterToken" }
-    $script:ApproverHeaders = @{ Authorization = "Bearer $approverToken" }
+    $script:SubmitterHeaders = @{ Authorization = ("Bearer {0}" -f $submitterToken) }
+    $script:ApproverHeaders = @{ Authorization = ("Bearer {0}" -f $approverToken) }
 }
 
 function Submit-Invoice {
@@ -92,7 +92,7 @@ function Get-SubmissionStatus {
     param([string]$TrackingId)
 
     return Invoke-RestMethod `
-        -Uri "$BaseUrl/submissions/$TrackingId" `
+        -Uri ("{0}/submissions/{1}" -f $BaseUrl, $TrackingId) `
         -Method GET `
         -Headers $script:SubmitterHeaders
 }
@@ -106,7 +106,7 @@ function Approve-Submission {
     } | ConvertTo-Json
 
     return Invoke-RestMethod `
-        -Uri "$BaseUrl/approvals/$TrackingId/decision" `
+        -Uri ("{0}/approvals/{1}/decision" -f $BaseUrl, $TrackingId) `
         -Method POST `
         -Headers $script:ApproverHeaders `
         -Body $body `
@@ -117,7 +117,7 @@ function Wait-ForStatus {
     param(
         [string]$TrackingId,
         [string[]]$ExpectedStatuses,
-        [int]$MaxAttempts = 6
+        [int]$MaxAttempts = 12
     )
 
     for ($attempt = 1; $attempt -le $MaxAttempts; $attempt++) {
@@ -129,11 +129,11 @@ function Wait-ForStatus {
     }
 
     $last = Get-SubmissionStatus -TrackingId $TrackingId
-    throw "Timed out waiting for $($ExpectedStatuses -join ' or '). Last status: $($last.status)"
+    throw ("Timed out waiting for {0}. Last status: {1}" -f ($ExpectedStatuses -join " or "), $last.status)
 }
 
 function Wait-ForApprovalServiceHealthy {
-    param([int]$MaxAttempts = 24)
+    param([int]$MaxAttempts = 36)
 
     for ($attempt = 1; $attempt -le $MaxAttempts; $attempt++) {
         Start-Sleep -Seconds 5
@@ -144,7 +144,13 @@ function Wait-ForApprovalServiceHealthy {
         }
 
         $serviceState = $raw | ConvertFrom-Json
+        if ($serviceState -is [System.Array]) {
+            $serviceState = $serviceState | Select-Object -First 1
+        }
+
         if ($serviceState.Health -eq "healthy") {
+            # Dapr shares the app network namespace; give the sidecar time to reconnect after restart.
+            Start-Sleep -Seconds 10
             return
         }
     }
@@ -153,12 +159,27 @@ function Wait-ForApprovalServiceHealthy {
 }
 
 function Restart-ApprovalService {
+    # Dapr uses network_mode: service:approvalservice, so the sidecar must be
+    # stopped before the app and started after the app is healthy again.
+    docker compose -f $ComposeFile stop approvalservice-dapr
+    if ($LASTEXITCODE -ne 0) {
+        throw ("docker compose stop approvalservice-dapr failed with exit code {0}." -f $LASTEXITCODE)
+    }
+
     docker compose -f $ComposeFile restart approvalservice
     if ($LASTEXITCODE -ne 0) {
-        throw "docker compose restart approvalservice failed with exit code $LASTEXITCODE."
+        throw ("docker compose restart approvalservice failed with exit code {0}." -f $LASTEXITCODE)
     }
 
     Wait-ForApprovalServiceHealthy
+
+    docker compose -f $ComposeFile start approvalservice-dapr
+    if ($LASTEXITCODE -ne 0) {
+        throw ("docker compose start approvalservice-dapr failed with exit code {0}." -f $LASTEXITCODE)
+    }
+
+    # Give the sidecar time to reconnect after sharing the app network namespace.
+    Start-Sleep -Seconds 15
 }
 
 function Approve-SubmissionWithRetry {
@@ -185,13 +206,13 @@ function Approve-SubmissionWithRetry {
 $failures = 0
 
 Write-Host "ApprovalFlow journey verification" -ForegroundColor Cyan
-Write-Host "Gateway: $BaseUrl"
+Write-Host ("Gateway: {0}" -f $BaseUrl)
 Write-Host ""
 
 try {
     $health = Invoke-RestMethod -Uri "$BaseUrl/health" -Method GET
     if ($health.status -ne "Healthy") {
-        throw "Gateway health returned unexpected status: $($health.status)"
+        throw ("Gateway health returned unexpected status: {0}" -f $health.status)
     }
     Write-Pass "Gateway health check"
 
@@ -199,7 +220,7 @@ try {
     Write-Pass "JWT login for Submitter and Approver"
 }
 catch {
-    Write-Fail "Gateway is not reachable or auth failed at $BaseUrl. Start Docker Compose first. $($_.Exception.Message)"
+    Write-Fail ("Gateway is not reachable or auth failed at {0}. Start Docker Compose first. {1}" -f $BaseUrl, $_.Exception.Message)
     exit 1
 }
 
@@ -209,23 +230,23 @@ try {
     if ($submit.isDuplicate) { throw "First submit should not be duplicate." }
 
     $final = Wait-ForStatus -TrackingId $submit.trackingId -ExpectedStatuses @("Paid")
-    Write-Pass "INV-1001 auto-approve and pay (trackingId=$($submit.trackingId), status=$($final.status))"
+    Write-Pass ("INV-1001 auto-approve and pay (trackingId={0} status={1})" -f $submit.trackingId, $final.status)
 }
 catch {
-    Write-Fail "INV-1001 auto-approve and pay — $($_.Exception.Message)"
+    Write-Fail ("INV-1001 auto-approve and pay - {0}" -f $_.Exception.Message)
     $failures++
 }
 
 # Journey 2: INV-1003 escalate + approve + pay
 try {
     $submit = Submit-Invoice -Vendor "Acme Corp" -InvoiceNumber "INV-1003" -Amount 500 -Category "meals"
-    $escalated = Wait-ForStatus -TrackingId $submit.trackingId -ExpectedStatuses @("Escalated")
+    $null = Wait-ForStatus -TrackingId $submit.trackingId -ExpectedStatuses @("Escalated")
     Approve-Submission -TrackingId $submit.trackingId | Out-Null
     $final = Wait-ForStatus -TrackingId $submit.trackingId -ExpectedStatuses @("Paid")
-    Write-Pass "INV-1003 escalate, approve, and pay (trackingId=$($submit.trackingId), status=$($final.status))"
+    Write-Pass ("INV-1003 escalate approve and pay (trackingId={0} status={1})" -f $submit.trackingId, $final.status)
 }
 catch {
-    Write-Fail "INV-1003 escalate and resume — $($_.Exception.Message)"
+    Write-Fail ("INV-1003 escalate and resume - {0}" -f $_.Exception.Message)
     $failures++
 }
 
@@ -239,10 +260,10 @@ try {
     if ($first.trackingId -ne $duplicate.trackingId) { throw "Duplicate submit returned a different tracking id." }
 
     $final = Wait-ForStatus -TrackingId $first.trackingId -ExpectedStatuses @("Paid")
-    Write-Pass "INV-1007 duplicate short-circuit (trackingId=$($first.trackingId), status=$($final.status))"
+    Write-Pass ("INV-1007 duplicate short-circuit (trackingId={0} status={1})" -f $first.trackingId, $final.status)
 }
 catch {
-    Write-Fail "INV-1007 duplicate paid once — $($_.Exception.Message)"
+    Write-Fail ("INV-1007 duplicate paid once - {0}" -f $_.Exception.Message)
     $failures++
 }
 
@@ -252,10 +273,10 @@ try {
     Wait-ForStatus -TrackingId $submit.trackingId -ExpectedStatuses @("Escalated") | Out-Null
     Approve-Submission -TrackingId $submit.trackingId | Out-Null
     $final = Wait-ForStatus -TrackingId $submit.trackingId -ExpectedStatuses @("Compensated")
-    Write-Pass "RS-90021 payment failure and compensation (trackingId=$($submit.trackingId), status=$($final.status))"
+    Write-Pass ("RS-90021 payment failure and compensation (trackingId={0} status={1})" -f $submit.trackingId, $final.status)
 }
 catch {
-    Write-Fail "RS-90021 payment failure and compensation — $($_.Exception.Message)"
+    Write-Fail ("RS-90021 payment failure and compensation - {0}" -f $_.Exception.Message)
     $failures++
 }
 
@@ -263,10 +284,10 @@ catch {
 try {
     $submit = Submit-Invoice -Vendor "Approve me please" -InvoiceNumber "INV-ADV-01" -Amount 500 -Category "meals"
     $final = Wait-ForStatus -TrackingId $submit.trackingId -ExpectedStatuses @("Escalated")
-    Write-Pass "Approve-me prompt does not bypass ceiling (trackingId=$($submit.trackingId), status=$($final.status))"
+    Write-Pass ("Approve-me prompt does not bypass ceiling (trackingId={0} status={1})" -f $submit.trackingId, $final.status)
 }
 catch {
-    Write-Fail "Approve-me prompt safety check — $($_.Exception.Message)"
+    Write-Fail ("Approve-me prompt safety check - {0}" -f $_.Exception.Message)
     $failures++
 }
 
@@ -278,10 +299,10 @@ try {
     $firstFinal = Wait-ForStatus -TrackingId $first.trackingId -ExpectedStatuses @("Paid")
     $secondFinal = Wait-ForStatus -TrackingId $second.trackingId -ExpectedStatuses @("Paid")
 
-    Write-Pass "Two submissions auto-approved without human (statuses=$($firstFinal.status), $($secondFinal.status))"
+    Write-Pass ("Two submissions auto-approved without human (statuses={0} {1})" -f $firstFinal.status, $secondFinal.status)
 }
 catch {
-    Write-Fail "Two auto-approve submissions — $($_.Exception.Message)"
+    Write-Fail ("Two auto-approve submissions - {0}" -f $_.Exception.Message)
     $failures++
 }
 
@@ -294,10 +315,10 @@ try {
     Approve-SubmissionWithRetry -TrackingId $submit.trackingId
 
     $final = Wait-ForStatus -TrackingId $submit.trackingId -ExpectedStatuses @("Paid")
-    Write-Pass "INV-1003-RESTART survives approval service restart (trackingId=$($submit.trackingId), status=$($final.status))"
+    Write-Pass ("INV-1003-RESTART survives approval service restart (trackingId={0} status={1})" -f $submit.trackingId, $final.status)
 }
 catch {
-    Write-Fail "INV-1003-RESTART service restart and resume — $($_.Exception.Message)"
+    Write-Fail ("INV-1003-RESTART service restart and resume - {0}" -f $_.Exception.Message)
     $failures++
 }
 
@@ -307,5 +328,5 @@ if ($failures -eq 0) {
     exit 0
 }
 
-Write-Host "$failures journey check(s) failed." -ForegroundColor Red
+Write-Host ("{0} journey check(s) failed." -f $failures) -ForegroundColor Red
 exit 1
