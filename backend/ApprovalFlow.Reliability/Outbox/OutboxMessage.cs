@@ -9,4 +9,5 @@ public sealed record OutboxMessage(
     string Status,
     int AttemptCount,
     DateTimeOffset CreatedAt,
-    DateTimeOffset NextAttemptAt);
+    DateTimeOffset NextAttemptAt,
+    string? CorrelationId = null);

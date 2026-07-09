@@ -20,7 +20,8 @@ public sealed record SubmissionReceivedEvent(
     string Vendor,
     string InvoiceNumber,
     decimal Amount,
-    string Category);
+    string Category,
+    string? TraceParent = null);
 
 public sealed record SubmissionState(
     string TrackingId,

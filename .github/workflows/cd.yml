@@ -29,14 +29,22 @@ jobs:
         include:
           - service: apigateway
             dockerfile: backend/ApiGateway/Dockerfile
+            context: .
           - service: intakeservice
             dockerfile: backend/IntakeService/Dockerfile
+            context: .
           - service: approvalservice
             dockerfile: backend/ApprovalService/Dockerfile
+            context: .
           - service: paymentservice
             dockerfile: backend/PaymentService/Dockerfile
+            context: .
           - service: notificationservice
             dockerfile: backend/NotificationService/Dockerfile
+            context: .
+          - service: frontend
+            dockerfile: Dockerfile
+            context: frontend
     steps:
       - name: Checkout CI commit
         uses: actions/checkout@v4
@@ -69,7 +77,7 @@ jobs:
       - name: Build and push image
         uses: docker/build-push-action@v6
         with:
-          context: .
+          context: ${{ matrix.context }}
           file: ${{ matrix.dockerfile }}
           push: true
           tags: |

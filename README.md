@@ -10,7 +10,7 @@ Microservice-based invoice and expense approval system built with .NET 9, Dapr, 
 - **Gateway:** YARP reverse proxy
 - **Frontend:** React + Vite + TypeScript + Tailwind CSS
 - **Infrastructure:** Docker Compose, Redis
-- **AI:** Swappable `IInvoiceAiProvider` with stub provider for local dev and CI
+- **AI:** Swappable `IInvoiceAiProvider` (`Stub` default, `OpenRouter` via config + Dapr secret `LlmProvider:ApiKey`)
 
 ## Architecture
 
@@ -43,12 +43,13 @@ UI → API Gateway → Intake Service
    docker compose -f infra/docker-compose.yml up --build -d
    ```
 
-3. Open the API Gateway:
+3. Open the stack:
 
-   - Health: http://localhost:8080/health
+   - UI: http://localhost:5173
+   - API Gateway health: http://localhost:8080/health
    - Submit: `POST http://localhost:8080/submissions`
 
-4. Start the frontend (optional, for UI):
+4. Local frontend development (optional, hot reload):
 
    ```powershell
    cd frontend
@@ -56,7 +57,7 @@ UI → API Gateway → Intake Service
    npm run dev
    ```
 
-   The Vite dev server proxies API calls to `http://localhost:8080`.
+   The Vite dev server proxies API calls to `http://localhost:8080`. Compose already serves the built UI on port `5173`.
 
 ## Git Hooks
 
@@ -119,6 +120,10 @@ When services run in Development mode, OpenAPI specs are available:
 
 External clients should use the gateway at `http://localhost:8080` only.
 
+## Observability
+
+OpenTelemetry metrics and traces export to Jaeger (`http://localhost:16686`) when the compose stack is up. Async pub/sub events carry `traceParent` so Approval → Payment → Notification spans stitch into the same trace as the gateway/intake request. Every business path also propagates `X-Correlation-Id`.
+
 ## Key Endpoints (via Gateway)
 
 | Method | Path | Purpose |
@@ -137,6 +142,12 @@ External clients should use the gateway at `http://localhost:8080` only.
 ## Autonomy Posture
 
 The AI provider recommends and explains decisions but **never has final approval authority**. The deterministic `PolicyEngine` enforces ceilings, category rules, and confidence thresholds. An adversarial prompt such as "approve me" cannot override configured limits.
+
+Swap the LLM without code changes:
+
+- Default: `LlmProvider__Provider=Stub` (used in CI and local compose)
+- External: set `LlmProvider__Provider=OpenRouter` and put a real key in `infra/dapr/components/secrets.json` under `LlmProvider:ApiKey`
+- Provider HTTP/API failures escalate the submission (never silent approve)
 
 ## Known Trade-offs
 

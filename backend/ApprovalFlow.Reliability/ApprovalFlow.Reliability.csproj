@@ -7,6 +7,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <InternalsVisibleTo Include="ApprovalFlow.Reliability.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="Dapr.Client" Version="1.15.0" />
     <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="9.0.13" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.13" />

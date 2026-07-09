@@ -41,6 +41,20 @@ public class InvoiceAiProviderConfigurationTests
     }
 
     [Fact]
+    public void AddConfiguredInvoiceAiProvider_WithOpenRouterSetting_RegistersOpenRouterProvider()
+    {
+        var configuration = BuildConfiguration(LlmProviderNames.OpenRouter);
+        var services = new ServiceCollection();
+        services.AddLogging();
+        services.AddConfiguredInvoiceAiProvider(configuration);
+
+        using var provider = services.BuildServiceProvider();
+        var resolved = provider.GetRequiredService<IInvoiceAiProvider>();
+
+        Assert.IsType<TracedInvoiceAiProvider>(resolved);
+    }
+
+    [Fact]
     public void AddConfiguredInvoiceAiProvider_WithUnknownProvider_Throws()
     {
         var configuration = BuildConfiguration("UnknownProvider");
@@ -50,6 +64,7 @@ public class InvoiceAiProviderConfigurationTests
             () => services.AddConfiguredInvoiceAiProvider(configuration));
 
         Assert.Contains("UnknownProvider", exception.Message, StringComparison.Ordinal);
+        Assert.Contains(LlmProviderNames.OpenRouter, exception.Message, StringComparison.Ordinal);
     }
 
     private static IConfiguration BuildConfiguration(string providerName)

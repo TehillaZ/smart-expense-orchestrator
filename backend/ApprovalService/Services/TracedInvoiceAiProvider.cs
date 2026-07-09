@@ -25,7 +25,8 @@ public sealed class TracedInvoiceAiProvider : IInvoiceAiProvider
             new KeyValuePair<string, object?>("submission.tracking_id", submission.TrackingId),
             new KeyValuePair<string, object?>("submission.category", submission.Category),
             new KeyValuePair<string, object?>("submission.amount", submission.Amount),
-            new KeyValuePair<string, object?>("ai.provider", "stub"),
+            new KeyValuePair<string, object?>("correlation.id", submission.CorrelationId),
+            new KeyValuePair<string, object?>("ai.provider", "configured"),
         };
 
         return ActivityTracing.TraceAsync(

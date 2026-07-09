@@ -34,12 +34,34 @@ public sealed class OutboxBackgroundPublisher : BackgroundService
 
                 foreach (var message in pendingMessages)
                 {
-                    await outboxService.TryDispatchAsync(message, stoppingToken);
+                    using (logger.BeginScope(new Dictionary<string, object>
+                    {
+                        ["CorrelationId"] = string.IsNullOrWhiteSpace(message.CorrelationId)
+                            ? "none"
+                            : message.CorrelationId
+                    }))
+                    {
+                        logger.LogDebug(
+                            "Dispatching pending outbox message {IdempotencyKey} for topic {Topic}. Correlation {CorrelationId}.",
+                            message.IdempotencyKey,
+                            message.Topic,
+                            message.CorrelationId ?? "none");
+                        await outboxService.TryDispatchAsync(message, stoppingToken);
+                    }
                 }
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
             {
-                logger.LogError(ex, "Outbox background publisher failed while processing pending messages.");
+                using (logger.BeginScope(new Dictionary<string, object>
+                {
+                    ["CorrelationId"] = "outbox-publisher"
+                }))
+                {
+                    logger.LogError(
+                        ex,
+                        "Outbox background publisher failed while processing pending messages. Correlation {CorrelationId}.",
+                        "outbox-publisher");
+                }
             }
 
             await Task.Delay(TimeSpan.FromSeconds(options.PollIntervalSeconds), stoppingToken);

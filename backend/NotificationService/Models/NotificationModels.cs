@@ -5,14 +5,16 @@ public sealed record PaymentCompletedEvent(
     string CorrelationId,
     string Status,
     string Reason,
-    decimal Amount);
+    decimal Amount,
+    string? TraceParent = null);
 
 public sealed record PaymentFailedEvent(
     string TrackingId,
     string CorrelationId,
     string Status,
     string Reason,
-    decimal Amount);
+    decimal Amount,
+    string? TraceParent = null);
 
 public sealed record NotificationRecord(
     string TrackingId,

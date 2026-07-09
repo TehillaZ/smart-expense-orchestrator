@@ -99,6 +99,34 @@ public sealed class OutboxServiceTests
         Assert.Equal(1, transport.PublishCount);
     }
 
+    [Fact]
+    public async Task EnqueueAsync_CapturesCorrelationIdFromPayload()
+    {
+        var store = new InMemoryOutboxStore();
+        var transport = new CountingOutboxTransport();
+        var service = CreateService(store, transport);
+
+        await service.EnqueueAsync(
+            "submission.received:tracking-corr",
+            "order-pubsub",
+            "submission.received",
+            new CorrelatedPayload("tracking-corr", "corr-42"));
+
+        var message = await store.GetByIdempotencyKeyAsync("submission.received:tracking-corr");
+        Assert.NotNull(message);
+        Assert.Equal("corr-42", message!.CorrelationId);
+    }
+
+    [Theory]
+    [InlineData("{\"correlationId\":\"abc-1\"}", "abc-1")]
+    [InlineData("{\"CorrelationId\":\"abc-2\"}", "abc-2")]
+    [InlineData("{\"trackingId\":\"only\"}", null)]
+    public void TryExtractCorrelationId_ReadsCamelOrPascalCase(string payloadJson, string? expected)
+    {
+        var actual = OutboxService.TryExtractCorrelationId(payloadJson);
+        Assert.Equal(expected, actual);
+    }
+
     private static OutboxService CreateService(IOutboxStore store, IOutboxTransport transport)
     {
         return new OutboxService(
@@ -114,6 +142,8 @@ public sealed class OutboxServiceTests
     }
 
     private sealed record SamplePayload(string TrackingId);
+
+    private sealed record CorrelatedPayload(string TrackingId, string CorrelationId);
 }
 
 public sealed class CountingOutboxTransport : IOutboxTransport

@@ -1,3 +1,4 @@
+using ApprovalFlow.Observability;
 using PaymentService.Models;
 
 namespace PaymentService.Services;
@@ -154,7 +155,8 @@ public sealed class PaymentSagaProcessor
                     paymentEvent.CorrelationId,
                     paidSubmission.Status,
                     paidSubmission.Reason,
-                    paymentEvent.Amount));
+                    paymentEvent.Amount,
+                    TraceContextPropagator.CaptureCurrent()));
 
             await PaymentMetricsRecorder.RecordPaidAsync(
                 metricsRecorder,
@@ -223,7 +225,8 @@ public sealed class PaymentSagaProcessor
                 pendingSubmission.CorrelationId,
                 status,
                 reason,
-                pendingSubmission.Amount));
+                pendingSubmission.Amount,
+                TraceContextPropagator.CaptureCurrent()));
 
         await PaymentMetricsRecorder.RecordPaymentFailedAsync(
             metricsRecorder,

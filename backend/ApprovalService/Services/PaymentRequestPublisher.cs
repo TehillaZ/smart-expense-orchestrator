@@ -1,3 +1,4 @@
+using ApprovalFlow.Observability;
 using ApprovalFlow.Reliability.Outbox;
 using ApprovalService.Models;
 
@@ -31,7 +32,8 @@ public sealed class DaprPaymentRequestPublisher : IPaymentRequestPublisher
             state.InvoiceNumber,
             state.Amount,
             state.Category,
-            SubmissionIdempotencyKeys.Build(state.Vendor, state.InvoiceNumber, state.Amount));
+            SubmissionIdempotencyKeys.Build(state.Vendor, state.InvoiceNumber, state.Amount),
+            TraceContextPropagator.CaptureCurrent());
 
         var idempotencyKey = $"payment.requested:{state.TrackingId}";
         await outboxService.EnqueueAsync(
@@ -54,4 +56,5 @@ public sealed record PaymentRequestedEvent(
     string InvoiceNumber,
     decimal Amount,
     string Category,
-    string IdempotencyKey);
+    string IdempotencyKey,
+    string? TraceParent = null);
