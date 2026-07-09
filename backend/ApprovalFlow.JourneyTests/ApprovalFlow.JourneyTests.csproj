@@ -21,6 +21,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\ApprovalFlow.TestSupport\ApprovalFlow.TestSupport.csproj" />
     <ProjectReference Include="..\ApprovalService\ApprovalService.csproj" />
     <ProjectReference Include="..\IntakeService\IntakeService.csproj" />
     <ProjectReference Include="..\PaymentService\PaymentService.csproj" />

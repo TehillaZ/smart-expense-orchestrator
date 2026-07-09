@@ -1,3 +1,4 @@
+using ApprovalFlow.TestSupport;
 using ApprovalService.Models;
 using PaymentService.Models;
 
@@ -7,6 +8,7 @@ namespace ApprovalFlow.JourneyTests;
 /// End-to-end journey tests for PLAN Step 12 (payment saga) and Step 13 (idempotency).
 /// Covers the four required verification scenarios through Intake → Approval → Payment.
 /// </summary>
+[Trait(TestLayers.TraitName, TestLayers.Journey)]
 public class RequiredJourneyTests
 {
     [Fact]

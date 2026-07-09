@@ -19,6 +19,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\ApprovalFlow.TestSupport\ApprovalFlow.TestSupport.csproj" />
     <ProjectReference Include="..\IntakeService\IntakeService.csproj" />
   </ItemGroup>
 

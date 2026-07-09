@@ -1,8 +1,10 @@
+using ApprovalFlow.TestSupport;
 using ApprovalService.Models;
 using ApprovalService.Services;
 
 namespace ApprovalService.Tests;
 
+[Trait(TestLayers.TraitName, TestLayers.Unit)]
 public class PolicyEngineTests
 {
     private static SubmissionReceivedEvent SampleEvent(decimal amount, string category = "meals") =>

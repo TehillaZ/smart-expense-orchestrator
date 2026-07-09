@@ -1,7 +1,9 @@
 using ApiGateway.Authorization;
+using ApprovalFlow.TestSupport;
 
 namespace ApiGateway.Tests;
 
+[Trait(TestLayers.TraitName, TestLayers.Api)]
 public class GatewayRouteAccessTests
 {
     [Theory]

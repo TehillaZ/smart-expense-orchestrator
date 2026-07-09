@@ -1,7 +1,9 @@
+using ApprovalFlow.TestSupport;
 using IntakeService.Services;
 
 namespace IntakeService.Tests;
 
+[Trait(TestLayers.TraitName, TestLayers.Unit)]
 public class SubmissionIdempotencyKeysTests
 {
     [Fact]

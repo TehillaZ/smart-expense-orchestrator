@@ -37,6 +37,10 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556F}") = "ApprovalFlow.PolicyRag", "
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556F}") = "ApprovalFlow.PolicyRag.Tests", "ApprovalFlow.PolicyRag.Tests\ApprovalFlow.PolicyRag.Tests.csproj", "{D6E7F8A9-B0C1-2345-DEF0-23456789014}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556F}") = "ApprovalFlow.TestSupport", "ApprovalFlow.TestSupport\ApprovalFlow.TestSupport.csproj", "{E7F8A9B0-C1D2-3456-EF01-3456789015}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556F}") = "ApprovalFlow.IntegrationTests", "ApprovalFlow.IntegrationTests\ApprovalFlow.IntegrationTests.csproj", "{F8A9B0C1-D2E3-4567-F012-4567890126}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -111,6 +115,14 @@ Global
 		{D6E7F8A9-B0C1-2345-DEF0-23456789014}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{D6E7F8A9-B0C1-2345-DEF0-23456789014}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{D6E7F8A9-B0C1-2345-DEF0-23456789014}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E7F8A9B0-C1D2-3456-EF01-3456789015}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E7F8A9B0-C1D2-3456-EF01-3456789015}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E7F8A9B0-C1D2-3456-EF01-3456789015}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E7F8A9B0-C1D2-3456-EF01-3456789015}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F8A9B0C1-D2E3-4567-F012-4567890126}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F8A9B0C1-D2E3-4567-F012-4567890126}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F8A9B0C1-D2E3-4567-F012-4567890126}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F8A9B0C1-D2E3-4567-F012-4567890126}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

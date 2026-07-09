@@ -20,6 +20,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\ApprovalFlow.TestSupport\ApprovalFlow.TestSupport.csproj" />
     <ProjectReference Include="..\ApiGateway\ApiGateway.csproj" />
   </ItemGroup>
 
