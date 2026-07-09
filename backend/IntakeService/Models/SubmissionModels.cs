@@ -42,4 +42,5 @@ public sealed record SubmissionReceivedEvent(
     string Vendor,
     string InvoiceNumber,
     decimal Amount,
-    string Category);
+    string Category,
+    string? TraceParent = null);

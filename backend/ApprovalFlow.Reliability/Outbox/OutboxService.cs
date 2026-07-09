@@ -46,9 +46,14 @@ public sealed class OutboxService : IOutboxService
         if (existing is not null
             && string.Equals(existing.Status, OutboxMessageStatus.Published, StringComparison.Ordinal))
         {
-            logger.LogInformation(
-                "Outbox message {IdempotencyKey} is already published. Skipping duplicate enqueue.",
-                idempotencyKey);
+            using (BeginCorrelationScope(existing.CorrelationId))
+            {
+                logger.LogInformation(
+                    "Outbox message {IdempotencyKey} is already published. Skipping duplicate enqueue. Correlation {CorrelationId}.",
+                    idempotencyKey,
+                    existing.CorrelationId ?? "none");
+            }
+
             return;
         }
 
@@ -63,6 +68,8 @@ public sealed class OutboxService : IOutboxService
 
     public async Task<bool> TryDispatchAsync(OutboxMessage message, CancellationToken cancellationToken)
     {
+        using var scope = BeginCorrelationScope(message.CorrelationId);
+
         if (string.Equals(message.Status, OutboxMessageStatus.Published, StringComparison.Ordinal))
         {
             return true;
@@ -80,9 +87,10 @@ public sealed class OutboxService : IOutboxService
             await store.SaveAsync(published, cancellationToken);
 
             logger.LogInformation(
-                "Published outbox message {IdempotencyKey} to {Topic}.",
+                "Published outbox message {IdempotencyKey} to {Topic}. Correlation {CorrelationId}.",
                 message.IdempotencyKey,
-                message.Topic);
+                message.Topic,
+                message.CorrelationId ?? "none");
             return true;
         }
         catch (Exception ex)
@@ -102,11 +110,20 @@ public sealed class OutboxService : IOutboxService
 
             logger.LogError(
                 ex,
-                "Failed to publish outbox message {IdempotencyKey} on attempt {AttemptCount}.",
+                "Failed to publish outbox message {IdempotencyKey} on attempt {AttemptCount}. Correlation {CorrelationId}.",
                 message.IdempotencyKey,
-                nextAttemptCount);
+                nextAttemptCount,
+                message.CorrelationId ?? "none");
             return false;
         }
+    }
+
+    private IDisposable BeginCorrelationScope(string? correlationId)
+    {
+        return logger.BeginScope(new Dictionary<string, object>
+        {
+            ["CorrelationId"] = string.IsNullOrWhiteSpace(correlationId) ? "none" : correlationId
+        }) ?? NullScope.Instance;
     }
 
     private OutboxMessage CreateMessage<TPayload>(
@@ -128,6 +145,46 @@ public sealed class OutboxService : IOutboxService
             OutboxMessageStatus.Pending,
             AttemptCount: 0,
             CreatedAt: now,
-            NextAttemptAt: now);
+            NextAttemptAt: now,
+            CorrelationId: TryExtractCorrelationId(payloadJson));
+    }
+
+    internal static string? TryExtractCorrelationId(string payloadJson)
+    {
+        try
+        {
+            using var document = JsonDocument.Parse(payloadJson);
+            if (document.RootElement.ValueKind != JsonValueKind.Object)
+            {
+                return null;
+            }
+
+            if (document.RootElement.TryGetProperty("correlationId", out var camelCase)
+                && camelCase.ValueKind == JsonValueKind.String)
+            {
+                return camelCase.GetString();
+            }
+
+            if (document.RootElement.TryGetProperty("CorrelationId", out var pascalCase)
+                && pascalCase.ValueKind == JsonValueKind.String)
+            {
+                return pascalCase.GetString();
+            }
+        }
+        catch (JsonException)
+        {
+            return null;
+        }
+
+        return null;
+    }
+
+    private sealed class NullScope : IDisposable
+    {
+        public static readonly NullScope Instance = new();
+
+        public void Dispose()
+        {
+        }
     }
 }

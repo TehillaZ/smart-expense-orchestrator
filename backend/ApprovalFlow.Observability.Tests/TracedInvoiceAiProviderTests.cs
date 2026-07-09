@@ -39,6 +39,7 @@ public class TracedInvoiceAiProviderTests
         Assert.Equal(TracedInvoiceAiProvider.ActivityName, aiSpan.OperationName);
         Assert.Equal("tracking-1", aiSpan.GetTagItem("submission.tracking_id"));
         Assert.Equal("meals", aiSpan.GetTagItem("submission.category"));
+        Assert.Equal("correlation-1", aiSpan.GetTagItem("correlation.id"));
         Assert.Equal(ActivityStatusCode.Ok, aiSpan.Status);
     }
 }

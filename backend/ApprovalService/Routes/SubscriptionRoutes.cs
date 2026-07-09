@@ -1,3 +1,4 @@
+using ApprovalFlow.Observability;
 using ApprovalService.Models;
 using ApprovalService.Services;
 using Dapr;
@@ -17,6 +18,12 @@ public static class SubscriptionRoutes
             ILoggerFactory loggerFactory) =>
         {
             var logger = loggerFactory.CreateLogger("SubscriptionRoutes");
+
+            using var activityScope = TraceContextPropagator.StartConsumerActivity(
+                "pubsub.submission.received",
+                submissionEvent.TraceParent,
+                submissionEvent.CorrelationId);
+            using var logScope = TraceLogScope.Begin(logger, submissionEvent.CorrelationId);
 
             try
             {

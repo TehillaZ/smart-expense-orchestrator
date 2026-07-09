@@ -1,3 +1,4 @@
+using ApprovalFlow.Observability;
 using Dapr;
 using PaymentService.Models;
 using PaymentService.Services;
@@ -17,6 +18,12 @@ public static class SubscriptionRoutes
             ILoggerFactory loggerFactory) =>
         {
             var logger = loggerFactory.CreateLogger("SubscriptionRoutes");
+
+            using var activityScope = TraceContextPropagator.StartConsumerActivity(
+                "pubsub.payment.requested",
+                paymentEvent.TraceParent,
+                paymentEvent.CorrelationId);
+            using var logScope = TraceLogScope.Begin(logger, paymentEvent.CorrelationId);
 
             try
             {

@@ -1,3 +1,4 @@
+using ApprovalFlow.Observability;
 using ApprovalFlow.Reliability.Outbox;
 using IntakeService.Models;
 using IntakeService.Services;
@@ -12,13 +13,15 @@ public static class SubmissionRoutes
     public static IEndpointRouteBuilder MapSubmissionRoutes(this IEndpointRouteBuilder app)
     {
         app.MapPost("/submissions", async (
+            HttpContext httpContext,
             SubmissionRequest request,
             ISubmissionStore store,
             IDashboardMetricsStore metricsStore,
             IOutboxService outboxService,
             ILoggerFactory loggerFactory) =>
         {
-            var correlationId = Guid.NewGuid().ToString();
+            var correlationId = CorrelationIdResolver.Resolve(
+                httpContext.Request.Headers[CorrelationConstants.HeaderName].FirstOrDefault());
             var logger = loggerFactory.CreateLogger("SubmissionRoutes");
 
             using var scope = logger.BeginScope(new Dictionary<string, object>
@@ -47,7 +50,8 @@ public static class SubmissionRoutes
                     submission.Vendor,
                     submission.InvoiceNumber,
                     submission.Amount,
-                    submission.Category);
+                    submission.Category,
+                    TraceContextPropagator.CaptureCurrent());
 
                 try
                 {

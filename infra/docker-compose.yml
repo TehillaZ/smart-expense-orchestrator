@@ -99,6 +99,9 @@ services:
     environment:
       Observability__OtlpEndpoint: http://jaeger:4317
       Observability__Enabled: "true"
+      LlmProvider__Provider: ${LlmProvider__Provider:-Stub}
+      LlmProvider__Model: ${LlmProvider__Model:-openai/gpt-4o-mini}
+      LlmProvider__BaseUrl: ${LlmProvider__BaseUrl:-https://openrouter.ai/api/v1}
     depends_on:
       redis:
         condition: service_healthy
@@ -205,6 +208,27 @@ services:
       notificationservice:
         condition: service_healthy
     network_mode: "service:notificationservice"
+
+  frontend:
+    image: ${DOCKER_REGISTRY-}approvalflow-frontend
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_GATEWAY_URL: ""
+    ports:
+      - "5173:80"
+    depends_on:
+      apigateway:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1/healthz"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    networks:
+      - approval-network
 
 networks:
   approval-network:

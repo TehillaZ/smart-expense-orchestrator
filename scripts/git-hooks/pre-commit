@@ -12,6 +12,15 @@ if ! git remote get-url origin >/dev/null 2>&1; then
   exit 0
 fi
 
+# A merge/rebase/cherry-pick in progress already owns the index; do not nest another merge.
+if [ -f "$(git rev-parse --git-path MERGE_HEAD)" ] \
+  || [ -d "$(git rev-parse --git-path rebase-merge)" ] \
+  || [ -d "$(git rev-parse --git-path rebase-apply)" ] \
+  || [ -f "$(git rev-parse --git-path CHERRY_PICK_HEAD)" ]; then
+  echo "==> Sync skipped: merge/rebase/cherry-pick already in progress."
+  exit 0
+fi
+
 if ! git fetch origin main; then
   echo "ERROR: git fetch origin main failed."
   echo "Check your network connection and remote access, then try again."

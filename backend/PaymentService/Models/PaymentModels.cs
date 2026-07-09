@@ -7,21 +7,24 @@ public sealed record PaymentRequestedEvent(
     string InvoiceNumber,
     decimal Amount,
     string Category,
-    string IdempotencyKey);
+    string IdempotencyKey,
+    string? TraceParent = null);
 
 public sealed record PaymentCompletedEvent(
     string TrackingId,
     string CorrelationId,
     string Status,
     string Reason,
-    decimal Amount);
+    decimal Amount,
+    string? TraceParent = null);
 
 public sealed record PaymentFailedEvent(
     string TrackingId,
     string CorrelationId,
     string Status,
     string Reason,
-    decimal Amount);
+    decimal Amount,
+    string? TraceParent = null);
 
 public sealed record SubmissionWorkflowState(
     string TrackingId,
