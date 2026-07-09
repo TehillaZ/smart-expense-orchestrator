@@ -1,3 +1,4 @@
+using ApprovalFlow.PolicyRag;
 using ApprovalService.Services;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -11,6 +12,7 @@ public class InvoiceAiProviderConfigurationTests
     {
         var configuration = BuildConfiguration("Stub");
         var services = new ServiceCollection();
+        services.AddLogging();
         services.AddConfiguredInvoiceAiProvider(configuration);
 
         using var provider = services.BuildServiceProvider();
@@ -22,8 +24,14 @@ public class InvoiceAiProviderConfigurationTests
     [Fact]
     public void AddConfiguredInvoiceAiProvider_WithoutSetting_DefaultsToStubProvider()
     {
-        var configuration = new ConfigurationBuilder().Build();
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["PolicyRag:PolicyDocumentPath"] = PolicyDocumentLocator.Resolve("Data/policy.md"),
+            })
+            .Build();
         var services = new ServiceCollection();
+        services.AddLogging();
         services.AddConfiguredInvoiceAiProvider(configuration);
 
         using var provider = services.BuildServiceProvider();
@@ -46,10 +54,12 @@ public class InvoiceAiProviderConfigurationTests
 
     private static IConfiguration BuildConfiguration(string providerName)
     {
+        var policyPath = PolicyDocumentLocator.Resolve("Data/policy.md");
         return new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
             {
                 [$"{LlmProviderOptions.SectionName}:Provider"] = providerName,
+                ["PolicyRag:PolicyDocumentPath"] = policyPath,
             })
             .Build();
     }

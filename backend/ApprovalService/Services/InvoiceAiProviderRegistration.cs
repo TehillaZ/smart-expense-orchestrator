@@ -1,4 +1,5 @@
 using ApprovalFlow.Observability;
+using ApprovalFlow.PolicyRag;
 using ApprovalFlow.Reliability.Throttling;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
@@ -16,6 +17,11 @@ public static class InvoiceAiProviderRegistration
         services.Configure<RateLimitOptions>(
             configuration.GetSection(RateLimitOptions.SectionName));
         services.TryAddSingleton<ObservabilityMetrics>();
+        services.AddPolicyRag(options =>
+        {
+            var policyPath = configuration["PolicyRag:PolicyDocumentPath"] ?? "Data/policy.md";
+            options.PolicyDocumentPath = policyPath;
+        });
 
         var providerName = configuration
             .GetSection(LlmProviderOptions.SectionName)

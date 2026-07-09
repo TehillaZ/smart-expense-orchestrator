@@ -46,7 +46,7 @@ internal sealed class JourneyHarness
     public int PaymentPublishCount => paymentPublisher.PublishCount;
 
     public static JourneyHarness Create(IInvoiceAiProvider? aiProvider = null) =>
-        CreateCore(aiProvider ?? new StubInvoiceAiProvider());
+        CreateCore(aiProvider ?? JourneyPolicyRagHelper.CreateStubProvider());
 
     private static JourneyHarness CreateCore(IInvoiceAiProvider aiProvider)
     {
