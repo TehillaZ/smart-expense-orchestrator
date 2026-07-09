@@ -1,8 +1,10 @@
+using ApprovalFlow.TestSupport;
 using IntakeService.Models;
 using IntakeService.Services;
 
 namespace IntakeService.Tests;
 
+[Trait(TestLayers.TraitName, TestLayers.Unit)]
 public class InMemorySubmissionStoreTests
 {
     [Fact]

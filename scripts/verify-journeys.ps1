@@ -29,12 +29,40 @@ param(
 
 $ErrorActionPreference = "Stop"
 
+$script:SubmitterHeaders = $null
+$script:ApproverHeaders = $null
+
 function Write-Pass([string]$Message) {
     Write-Host "[PASS] $Message" -ForegroundColor Green
 }
 
 function Write-Fail([string]$Message) {
     Write-Host "[FAIL] $Message" -ForegroundColor Red
+}
+
+function Get-AuthToken {
+    param([string]$Role)
+
+    $body = @{ role = $Role } | ConvertTo-Json
+    $login = Invoke-RestMethod `
+        -Uri "$BaseUrl/auth/login" `
+        -Method POST `
+        -Body $body `
+        -ContentType "application/json"
+
+    if ([string]::IsNullOrWhiteSpace($login.token)) {
+        throw "Login for role '$Role' did not return a token."
+    }
+
+    return $login.token
+}
+
+function Initialize-AuthHeaders {
+    $submitterToken = Get-AuthToken -Role "Submitter"
+    $approverToken = Get-AuthToken -Role "Approver"
+
+    $script:SubmitterHeaders = @{ Authorization = "Bearer $submitterToken" }
+    $script:ApproverHeaders = @{ Authorization = "Bearer $approverToken" }
 }
 
 function Submit-Invoice {
@@ -55,6 +83,7 @@ function Submit-Invoice {
     return Invoke-RestMethod `
         -Uri "$BaseUrl/submissions" `
         -Method POST `
+        -Headers $script:SubmitterHeaders `
         -Body $body `
         -ContentType "application/json"
 }
@@ -64,7 +93,8 @@ function Get-SubmissionStatus {
 
     return Invoke-RestMethod `
         -Uri "$BaseUrl/submissions/$TrackingId" `
-        -Method GET
+        -Method GET `
+        -Headers $script:SubmitterHeaders
 }
 
 function Approve-Submission {
@@ -78,6 +108,7 @@ function Approve-Submission {
     return Invoke-RestMethod `
         -Uri "$BaseUrl/approvals/$TrackingId/decision" `
         -Method POST `
+        -Headers $script:ApproverHeaders `
         -Body $body `
         -ContentType "application/json"
 }
@@ -163,9 +194,12 @@ try {
         throw "Gateway health returned unexpected status: $($health.status)"
     }
     Write-Pass "Gateway health check"
+
+    Initialize-AuthHeaders
+    Write-Pass "JWT login for Submitter and Approver"
 }
 catch {
-    Write-Fail "Gateway is not reachable at $BaseUrl. Start Docker Compose first."
+    Write-Fail "Gateway is not reachable or auth failed at $BaseUrl. Start Docker Compose first. $($_.Exception.Message)"
     exit 1
 }
 
