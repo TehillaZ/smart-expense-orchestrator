@@ -9,7 +9,10 @@ public class GatewayRouteAccessTests
     [Theory]
     [InlineData("/health")]
     [InlineData("/auth/login")]
-    public void IsPublicPath_AllowsHealthAndLogin(string path)
+    [InlineData("/openapi/v1.json")]
+    [InlineData("/scalar")]
+    [InlineData("/scalar/index.html")]
+    public void IsPublicPath_AllowsHealthLoginAndApiDocs(string path)
     {
         Assert.True(GatewayRouteAccess.IsPublicPath(path));
     }

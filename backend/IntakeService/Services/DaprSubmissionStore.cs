@@ -99,9 +99,12 @@ public sealed class DaprSubmissionStore : ISubmissionStore
 
             var submissions = new List<SubmissionStatusResponse>(registry.Count);
 
+            // List from intake state only — avoid N+1 ApprovalService calls that amplify sidecar outages.
             foreach (var trackingId in registry)
             {
-                var submission = await GetSubmissionAsync(trackingId);
+                var submission = await daprClient.GetStateAsync<SubmissionStatusResponse>(
+                    StateStoreName,
+                    trackingId);
                 if (submission is not null)
                 {
                     submissions.Add(submission);

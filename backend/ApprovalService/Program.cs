@@ -3,6 +3,8 @@ using ApprovalFlow.Reliability.Outbox;
 using ApprovalService.Middleware;
 using ApprovalService.Routes;
 using ApprovalService.Services;
+using Microsoft.OpenApi.Models;
+using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -27,14 +29,30 @@ builder.Services.AddDaprOutbox(options =>
 });
 builder.Services.AddSingleton<IPaymentRequestPublisher, DaprPaymentRequestPublisher>();
 builder.Services.AddSingleton<IMetricsRecorder, DaprMetricsRecorder>();
-builder.Services.AddOpenApi();
+builder.Services.AddOpenApi(options =>
+{
+    options.AddDocumentTransformer((document, _, _) =>
+    {
+        document.Info = new OpenApiInfo
+        {
+            Title = "Approval Service API",
+            Version = "v1",
+            Description = "Policy evaluation, escalation queue, human decisions, and policy settings.",
+        };
+        return Task.CompletedTask;
+    });
+});
 
 var app = builder.Build();
 
-if (app.Environment.IsDevelopment())
+app.MapOpenApi();
+app.MapScalarApiReference(options =>
 {
-    app.MapOpenApi();
-}
+    options
+        .WithTitle("Approval Service API")
+        .WithTheme(ScalarTheme.Purple)
+        .WithDefaultHttpClient(ScalarTarget.CSharp, ScalarClient.HttpClient);
+});
 
 app.UseApprovalFlowObservability();
 app.UseMiddleware<CorrelationIdScopeMiddleware>();

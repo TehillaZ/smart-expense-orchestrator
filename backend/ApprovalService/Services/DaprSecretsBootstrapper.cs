@@ -4,10 +4,15 @@ namespace ApprovalService.Services;
 
 public sealed class DaprSecretsBootstrapper : IHostedService
 {
+    private const int MaxAttempts = 30;
+    private static readonly TimeSpan RetryDelay = TimeSpan.FromSeconds(1);
+
     private readonly DaprSecretsProvider secretsProvider;
     private readonly LlmApiKeyAccessor apiKeyAccessor;
     private readonly LlmProviderOptions options;
     private readonly ILogger<DaprSecretsBootstrapper> logger;
+    private CancellationTokenSource? backgroundCts;
+    private Task? backgroundTask;
 
     public DaprSecretsBootstrapper(
         DaprSecretsProvider secretsProvider,
@@ -21,33 +26,96 @@ public sealed class DaprSecretsBootstrapper : IHostedService
         this.logger = logger;
     }
 
-    public async Task StartAsync(CancellationToken cancellationToken)
+    public Task StartAsync(CancellationToken cancellationToken)
     {
-        var apiKey = await secretsProvider.TryGetSecretAsync("LlmProvider:ApiKey", cancellationToken);
-        apiKeyAccessor.SetApiKey(apiKey);
+        // Dapr sidecar often starts after the app becomes healthy, so load secrets in the background.
+        backgroundCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        backgroundTask = LoadSecretWithRetriesAsync(backgroundCts.Token);
+        return Task.CompletedTask;
+    }
 
-        if (string.IsNullOrWhiteSpace(apiKeyAccessor.ApiKey))
+    public async Task StopAsync(CancellationToken cancellationToken)
+    {
+        if (backgroundCts is null)
         {
-            if (string.Equals(options.Provider, LlmProviderNames.OpenRouter, StringComparison.OrdinalIgnoreCase))
-            {
-                logger.LogError(
-                    "OpenRouter is configured but LlmProvider:ApiKey was not loaded from Dapr. " +
-                    "Provider calls will fail cleanly until the secret is available.");
-            }
-            else
-            {
-                logger.LogWarning(
-                    "LLM provider secret was not loaded from Dapr; continuing with the configured {Provider} provider.",
-                    options.Provider);
-            }
-
             return;
         }
 
-        logger.LogInformation(
-            "LLM provider API key loaded from Dapr secret store for provider {Provider}.",
-            options.Provider);
+        await backgroundCts.CancelAsync();
+        if (backgroundTask is not null)
+        {
+            try
+            {
+                await backgroundTask.WaitAsync(cancellationToken);
+            }
+            catch (OperationCanceledException)
+            {
+            }
+        }
+
+        backgroundCts.Dispose();
     }
 
-    public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+    private async Task LoadSecretWithRetriesAsync(CancellationToken cancellationToken)
+    {
+        var needsFallbackKey = LlmProviderNames.RequiresApiKey(options.FallbackProvider);
+
+        for (var attempt = 1; attempt <= MaxAttempts; attempt++)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            var apiKey = await secretsProvider.TryGetSecretAsync("LlmProvider:ApiKey", cancellationToken);
+            var fallbackApiKey = await secretsProvider.TryGetSecretAsync(
+                "LlmProvider:FallbackApiKey",
+                cancellationToken);
+
+            if (!string.IsNullOrWhiteSpace(apiKey))
+            {
+                apiKeyAccessor.SetApiKey(apiKey);
+                if (!string.IsNullOrWhiteSpace(fallbackApiKey))
+                {
+                    apiKeyAccessor.SetFallbackApiKey(fallbackApiKey);
+                }
+
+                logger.LogInformation(
+                    "LLM provider API key loaded from Dapr secret store for provider {Provider}.",
+                    options.Provider);
+
+                if (needsFallbackKey && string.IsNullOrWhiteSpace(fallbackApiKey))
+                {
+                    logger.LogWarning(
+                        "Fallback provider {FallbackProvider} is configured but LlmProvider:FallbackApiKey was not found.",
+                        options.FallbackProvider);
+                }
+                else if (!string.IsNullOrWhiteSpace(fallbackApiKey))
+                {
+                    logger.LogInformation(
+                        "LLM fallback API key loaded from Dapr secret store for provider {FallbackProvider}.",
+                        options.FallbackProvider ?? "(configured)");
+                }
+
+                return;
+            }
+
+            logger.LogInformation(
+                "Waiting for Dapr secret store before loading LlmProvider:ApiKey (attempt {Attempt}/{MaxAttempts}).",
+                attempt,
+                MaxAttempts);
+            await Task.Delay(RetryDelay, cancellationToken);
+        }
+
+        if (LlmProviderNames.RequiresApiKey(options.Provider))
+        {
+            logger.LogError(
+                "{Provider} is configured but LlmProvider:ApiKey was not loaded from Dapr. " +
+                "Provider calls will fail cleanly until the secret is available.",
+                options.Provider);
+        }
+        else
+        {
+            logger.LogWarning(
+                "LLM provider secret was not loaded from Dapr; continuing with the configured {Provider} provider.",
+                options.Provider);
+        }
+    }
 }

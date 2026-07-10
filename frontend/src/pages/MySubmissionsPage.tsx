@@ -15,7 +15,7 @@ import {
 import type { ExpenseCategory, SubmissionDetail, SubmissionRecord } from '../types/submission'
 import { canSubmitExpenses } from '../types/userRole'
 
-const REFRESH_INTERVAL_MS = 5000
+const REFRESH_INTERVAL_MS = 10000
 
 type ToastState = {
   message: string

@@ -111,21 +111,6 @@ function toSubmissionDetail(
   }
 }
 
-async function enrichSubmission(
-  summary: SubmissionStatusResponse,
-): Promise<SubmissionRecord> {
-  try {
-    const [latestStatus, notification] = await Promise.all([
-      getSubmissionStatus(summary.trackingId),
-      getNotificationOutcome(summary.trackingId),
-    ])
-
-    return toSubmissionRecord(latestStatus ?? summary, notification)
-  } catch {
-    return toSubmissionRecord(summary, null)
-  }
-}
-
 export async function loadSubmissionDetail(
   trackingId: string,
 ): Promise<SubmissionDetail | null> {
@@ -144,11 +129,8 @@ export async function loadSubmissionDetail(
 export async function loadSubmissionHistory(): Promise<SubmissionRecord[]> {
   const submissions = await requestJson<SubmissionStatusResponse[]>(API_ENDPOINTS.submissions)
 
-  if (submissions.length === 0) {
-    return []
-  }
-
-  return Promise.all(submissions.map((submission) => enrichSubmission(submission)))
+  // Use the list payload directly to avoid N+1 status/notification calls that trip gateway rate limits.
+  return submissions.map((submission) => toSubmissionRecord(submission, null))
 }
 
 export { hasDuplicateResubmits }

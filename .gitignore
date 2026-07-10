@@ -14,6 +14,9 @@
 .env.*
 !.env.example
 
+# Local Dapr secrets (keep secrets.example.json committed)
+infra/dapr/components/secrets.json
+
 # IDE/editor artifacts
 .vs/
 .vscode/

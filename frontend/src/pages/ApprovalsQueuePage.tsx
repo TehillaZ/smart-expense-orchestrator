@@ -14,7 +14,7 @@ import {
   type EscalationQueueFilters,
 } from '../utils/escalationQueueFilters'
 
-const REFRESH_INTERVAL_MS = 5000
+const REFRESH_INTERVAL_MS = 10000
 const HIGHLIGHT_DURATION_MS = 4000
 
 type ToastState = {
