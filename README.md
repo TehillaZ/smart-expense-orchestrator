@@ -1,6 +1,24 @@
+<p align="center">
+  <img src="docs/images/approvalflow-hero.png" alt="ApprovalFlow — AI-Powered Invoice & Expense Approval System" width="100%" />
+</p>
+
 # ApprovalFlow Platform
 
 Microservice-based invoice and expense approval system built with .NET 9, Dapr, and React. Submissions return a tracking id immediately, policy and AI evaluate each item asynchronously, safe cases auto-approve, risky cases escalate to a human, and approved items flow through a payment saga with compensation on failure.
+
+<p align="center">
+  <img src="https://img.shields.io/badge/.NET-9-512BD4?style=flat-square" alt=".NET 9" />
+  <img src="https://img.shields.io/badge/Dapr-pubsub%20%2B%20state-00BFA5?style=flat-square" alt="Dapr" />
+  <img src="https://img.shields.io/badge/React-Vite%20%2B%20Tailwind-61DAFB?style=flat-square" alt="React" />
+  <img src="https://img.shields.io/badge/Docker-Compose-2496ED?style=flat-square" alt="Docker" />
+  <img src="https://img.shields.io/badge/AI-Stub%20%7C%20Groq%20%7C%20Gemini-7C3AED?style=flat-square" alt="AI providers" />
+</p>
+
+## Demo
+
+[![Watch the demo](docs/images/approvalflow-hero.png)](https://drive.google.com/file/d/1kJPyaeAXTSFW5PsmheztJrccQz27XtRt/view?usp=sharing)
+
+2–5 minute walkthrough: submit → policy/AI evaluation → escalate or auto-approve → payment saga (including failure compensation).
 
 ## Technologies
 
@@ -14,7 +32,11 @@ Microservice-based invoice and expense approval system built with .NET 9, Dapr, 
 
 ## Architecture
 
-See [ARCHITECTURE.md](ARCHITECTURE.md) for service boundaries, request flow, payment saga, and ADRs.
+Event-driven microservices with Dapr sidecars for pub/sub, state, and secrets. See [ARCHITECTURE.md](ARCHITECTURE.md) for service boundaries, request flow, payment saga, and ADRs.
+
+<p align="center">
+  <img src="docs/images/approvalflow-architecture.png" alt="ApprovalFlow services architecture with Dapr" width="100%" />
+</p>
 
 ```text
 UI → API Gateway → Intake Service
@@ -202,7 +224,7 @@ Before evaluation deadline:
 
 ## Demo Recording
 
-_Add link to your 2–5 minute demo video here._
+[Watch the demo on Google Drive](https://drive.google.com/file/d/1kJPyaeAXTSFW5PsmheztJrccQz27XtRt/view?usp=sharing)
 
 ## License
 
