@@ -10,7 +10,7 @@ Microservice-based invoice and expense approval system built with .NET 9, Dapr, 
 - **Gateway:** YARP reverse proxy
 - **Frontend:** React + Vite + TypeScript + Tailwind CSS
 - **Infrastructure:** Docker Compose, Redis
-- **AI:** Swappable `IInvoiceAiProvider` (`Stub` default, `OpenRouter` via config + Dapr secret `LlmProvider:ApiKey`)
+- **AI:** Swappable `IInvoiceAiProvider` (`Stub` default, `Gemini` / `Groq` / `OpenRouter` via config + Dapr secret `LlmProvider:ApiKey`)
 
 ## Architecture
 
@@ -109,14 +109,28 @@ This script verifies:
 
 Exit code is non-zero on any failure.
 
-## API Documentation
+## API Documentation (D4)
 
-When services run in Development mode, OpenAPI specs are available:
+OpenAPI is **auto-generated from the Minimal API endpoints**. Each service (and the gateway) also hosts an interactive **Scalar** UI so you can explore and try requests in the browser.
 
-- Intake: http://localhost:5001/openapi/v1.json
-- Approval: http://localhost:5002/openapi/v1.json
-- Payment: http://localhost:5003/openapi/v1.json
-- Notification: http://localhost:5004/openapi/v1.json
+### Scalar UI (recommended)
+
+| Surface | Scalar UI | OpenAPI JSON |
+|---------|-----------|--------------|
+| API Gateway (preferred for clients) | http://localhost:8080/scalar | http://localhost:8080/openapi/v1.json |
+| Intake | http://localhost:5001/scalar | http://localhost:5001/openapi/v1.json |
+| Approval | http://localhost:5002/scalar | http://localhost:5002/openapi/v1.json |
+| Payment | http://localhost:5003/scalar | http://localhost:5003/openapi/v1.json |
+| Notification | http://localhost:5004/scalar | http://localhost:5004/openapi/v1.json |
+
+### How to exercise endpoints
+
+1. Open the **gateway** Scalar UI: http://localhost:8080/scalar
+2. Call `POST /auth/login` with a role (`Submitter`, `Approver`, or `Admin`) to get a JWT
+3. In Scalar, set the `Authorization` header to `Bearer <token>`
+4. Call proxied business routes (`/submissions`, `/approvals/queue`, `/policy`, …)
+
+You can also import any `/openapi/v1.json` URL into **Postman** or **Swagger Editor**.
 
 External clients should use the gateway at `http://localhost:8080` only.
 
@@ -146,7 +160,10 @@ The AI provider recommends and explains decisions but **never has final approval
 Swap the LLM without code changes:
 
 - Default: `LlmProvider__Provider=Stub` (used in CI and local compose)
-- External: set `LlmProvider__Provider=OpenRouter` and put a real key in `infra/dapr/components/secrets.json` under `LlmProvider:ApiKey`
+- External: set `LlmProvider__Provider=Groq` (recommended when Gemini TLS fails), `Gemini`, or `OpenRouter`, and put a real key in `infra/dapr/components/secrets.json` under `LlmProvider:ApiKey`
+- Optional resilience: set `LlmProvider__FallbackProvider=Groq` (with `LlmProvider:FallbackApiKey`) plus `RetryCount` / `RetryDelayMs` — primary retries transient errors, then falls back once; both failing escalates to human review
+- Groq example: `LlmProvider__Model=llama-3.3-70b-versatile`, `LlmProvider__BaseUrl=https://api.groq.com/openai/v1/`
+- Copy `infra/dapr/components/secrets.example.json` to `secrets.json` for local secrets (gitignored)
 - Provider HTTP/API failures escalate the submission (never silent approve)
 
 ## Known Trade-offs

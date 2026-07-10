@@ -1,4 +1,5 @@
 using System.Text;
+using System.Threading.RateLimiting;
 using ApiGateway.Auth;
 using ApiGateway.Middleware;
 using ApiGateway.Routes;
@@ -6,7 +7,8 @@ using ApprovalFlow.Observability;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.IdentityModel.Tokens;
-using System.Threading.RateLimiting;
+using Microsoft.OpenApi.Models;
+using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -54,8 +56,8 @@ builder.Services.AddRateLimiter(options =>
     options.AddFixedWindowLimiter("gateway", limiter =>
     {
         limiter.Window = TimeSpan.FromMinutes(1);
-        limiter.PermitLimit = 100;
-        limiter.QueueLimit = 0;
+        limiter.PermitLimit = 600;
+        limiter.QueueLimit = 50;
     });
     options.OnRejected = async (context, cancellationToken) =>
     {
@@ -64,7 +66,33 @@ builder.Services.AddRateLimiter(options =>
     };
 });
 
+builder.Services.AddOpenApi(options =>
+{
+    options.AddDocumentTransformer((document, _, _) =>
+    {
+        document.Info = new OpenApiInfo
+        {
+            Title = "ApprovalFlow API Gateway",
+            Version = "v1",
+            Description =
+                "Edge gateway for ApprovalFlow. Prefer these routes for clients. " +
+                "Business APIs are proxied to Intake/Approval/Payment/Notification. " +
+                "Authenticate via POST /auth/login, then send Authorization: Bearer <token>.",
+        };
+        return Task.CompletedTask;
+    });
+});
+
 var app = builder.Build();
+
+app.MapOpenApi();
+app.MapScalarApiReference(options =>
+{
+    options
+        .WithTitle("ApprovalFlow API Gateway")
+        .WithTheme(ScalarTheme.Purple)
+        .WithDefaultHttpClient(ScalarTarget.CSharp, ScalarClient.HttpClient);
+});
 
 app.UseApprovalFlowObservability();
 app.UseRateLimiter();

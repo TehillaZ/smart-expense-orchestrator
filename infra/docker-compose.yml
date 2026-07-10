@@ -100,8 +100,13 @@ services:
       Observability__OtlpEndpoint: http://jaeger:4317
       Observability__Enabled: "true"
       LlmProvider__Provider: ${LlmProvider__Provider:-Stub}
-      LlmProvider__Model: ${LlmProvider__Model:-openai/gpt-4o-mini}
-      LlmProvider__BaseUrl: ${LlmProvider__BaseUrl:-https://openrouter.ai/api/v1}
+      LlmProvider__Model: ${LlmProvider__Model:-stub}
+      LlmProvider__BaseUrl: ${LlmProvider__BaseUrl:-}
+      LlmProvider__FallbackProvider: ${LlmProvider__FallbackProvider:-}
+      LlmProvider__FallbackModel: ${LlmProvider__FallbackModel:-}
+      LlmProvider__FallbackBaseUrl: ${LlmProvider__FallbackBaseUrl:-}
+      LlmProvider__RetryCount: ${LlmProvider__RetryCount:-0}
+      LlmProvider__RetryDelayMs: ${LlmProvider__RetryDelayMs:-0}
     depends_on:
       redis:
         condition: service_healthy
@@ -128,7 +133,7 @@ services:
       - ./dapr/components:/components
     depends_on:
       approvalservice:
-        condition: service_healthy
+        condition: service_started
     network_mode: "service:approvalservice"
 
   paymentservice:

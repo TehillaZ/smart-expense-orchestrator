@@ -17,14 +17,14 @@ public sealed class OpenRouterInvoiceAiProvider : IInvoiceAiProvider
 
     private readonly HttpClient httpClient;
     private readonly IPolicyRetriever policyRetriever;
-    private readonly LlmApiKeyAccessor apiKeyAccessor;
+    private readonly ILlmApiKeyAccessor apiKeyAccessor;
     private readonly LlmProviderOptions options;
     private readonly ILogger<OpenRouterInvoiceAiProvider> logger;
 
     public OpenRouterInvoiceAiProvider(
         HttpClient httpClient,
         IPolicyRetriever policyRetriever,
-        LlmApiKeyAccessor apiKeyAccessor,
+        ILlmApiKeyAccessor apiKeyAccessor,
         IOptions<LlmProviderOptions> options,
         ILogger<OpenRouterInvoiceAiProvider> logger)
     {

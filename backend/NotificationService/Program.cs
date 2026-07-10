@@ -1,7 +1,9 @@
 using ApprovalFlow.Observability;
+using Microsoft.OpenApi.Models;
 using NotificationService.Middleware;
 using NotificationService.Routes;
 using NotificationService.Services;
+using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -16,14 +18,30 @@ builder.Services.AddSingleton<DaprSecretsProvider>();
 builder.Services.AddHostedService<DaprSecretsBootstrapper>();
 builder.Services.AddSingleton<INotificationChannel, StubNotificationChannel>();
 builder.Services.AddSingleton<NotificationProcessor>();
-builder.Services.AddOpenApi();
+builder.Services.AddOpenApi(options =>
+{
+    options.AddDocumentTransformer((document, _, _) =>
+    {
+        document.Info = new OpenApiInfo
+        {
+            Title = "Notification Service API",
+            Version = "v1",
+            Description = "Notification outcomes for completed or failed payments.",
+        };
+        return Task.CompletedTask;
+    });
+});
 
 var app = builder.Build();
 
-if (app.Environment.IsDevelopment())
+app.MapOpenApi();
+app.MapScalarApiReference(options =>
 {
-    app.MapOpenApi();
-}
+    options
+        .WithTitle("Notification Service API")
+        .WithTheme(ScalarTheme.Purple)
+        .WithDefaultHttpClient(ScalarTarget.CSharp, ScalarClient.HttpClient);
+});
 
 app.UseApprovalFlowObservability();
 app.UseMiddleware<CorrelationIdScopeMiddleware>();
