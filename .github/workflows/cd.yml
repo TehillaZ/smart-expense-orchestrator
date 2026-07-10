@@ -43,7 +43,7 @@ jobs:
             dockerfile: backend/NotificationService/Dockerfile
             context: .
           - service: frontend
-            dockerfile: Dockerfile
+            dockerfile: frontend/Dockerfile
             context: frontend
     steps:
       - name: Checkout CI commit
