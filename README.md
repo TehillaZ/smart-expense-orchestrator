@@ -31,11 +31,14 @@ UI → API Gateway → Intake Service
 
 ## Quick Start (Docker)
 
-1. Clone the repository and copy environment placeholders:
+1. Clone the repository and copy environment / secrets placeholders:
 
    ```powershell
    copy .env.example .env
+   copy infra\dapr\components\secrets.example.json infra\dapr\components\secrets.json
    ```
+
+   `secrets.json` is gitignored. Dapr needs this file at startup even when using the Stub LLM (placeholder values are fine).
 
 2. Start the full stack:
 
@@ -47,6 +50,7 @@ UI → API Gateway → Intake Service
 
    - UI: http://localhost:5173
    - API Gateway health: http://localhost:8080/health
+   - API docs (Scalar): http://localhost:8080/scalar
    - Submit: `POST http://localhost:8080/submissions`
 
 4. Local frontend development (optional, hot reload):

@@ -100,6 +100,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Provision local Dapr secrets file
+        run: |
+          cp infra/dapr/components/secrets.example.json infra/dapr/components/secrets.json
+
       - name: Validate compose file
         run: docker compose -f infra/docker-compose.yml config
 
@@ -115,6 +119,10 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Provision local Dapr secrets file
+        run: |
+          cp infra/dapr/components/secrets.example.json infra/dapr/components/secrets.json
 
       - name: Start stack
         run: docker compose -f infra/docker-compose.yml up --build -d
