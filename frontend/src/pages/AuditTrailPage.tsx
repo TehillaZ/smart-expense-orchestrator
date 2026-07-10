@@ -5,12 +5,62 @@ import { ApiRequestError } from '../services/apiClient'
 import { loadAuditTrail } from '../services/auditService'
 import { loadPolicySettings } from '../services/policyService'
 import type { AuditTrailResponse, PolicySettings } from '../types/api'
+import { isAuditFailureLabel } from '../utils/workflowSteps'
 
 function formatCurrency(amount: number): string {
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency: 'USD',
   }).format(amount)
+}
+
+function PaymentResultPanel({
+  payment,
+}: {
+  payment: NonNullable<AuditTrailResponse['payment']>
+}) {
+  const isCompensated = payment.status.toLowerCase().includes('compensat')
+  const paymentFailure =
+    isAuditFailureLabel(payment.status) || isAuditFailureLabel(payment.reason)
+
+  return (
+    <div
+      className={`mt-4 rounded-lg border p-4 ${
+        isCompensated
+          ? 'border-amber-300 bg-amber-50'
+          : paymentFailure
+            ? 'border-rose-200 bg-rose-50'
+            : 'border-emerald-200 bg-emerald-50'
+      }`}
+    >
+      <p
+        className={`text-xs font-semibold uppercase tracking-wide ${
+          isCompensated || paymentFailure ? 'text-amber-800' : 'text-emerald-700'
+        }`}
+      >
+        Payment Result
+      </p>
+      <p
+        className={`mt-2 text-sm font-medium ${
+          isCompensated || paymentFailure ? 'text-amber-950' : 'text-emerald-900'
+        }`}
+      >
+        {isCompensated ? 'Payment failed — money returned' : payment.status}
+      </p>
+      {isCompensated ? (
+        <p className="mt-2 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-medium text-emerald-950">
+          OK — you get your money back. Reserved funds were released and this expense was not paid.
+        </p>
+      ) : null}
+      <p
+        className={`mt-1 text-sm ${
+          isCompensated || paymentFailure ? 'text-amber-900' : 'text-emerald-800'
+        }`}
+      >
+        {payment.reason}
+      </p>
+    </div>
+  )
 }
 
 export function AuditTrailPage() {
@@ -210,32 +260,73 @@ export function AuditTrailPage() {
                 </div>
               </div>
 
-              {audit.payment ? (
-                <div className="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 p-4">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700">
-                    Payment Result
-                  </p>
-                  <p className="mt-2 text-sm font-medium text-emerald-900">{audit.payment.status}</p>
-                  <p className="mt-1 text-sm text-emerald-800">{audit.payment.reason}</p>
-                </div>
-              ) : null}
+              {audit.payment ? <PaymentResultPanel payment={audit.payment} /> : null}
 
               <div className="mt-6">
                 <h4 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
                   Timeline
                 </h4>
                 <ol className="mt-4 space-y-4 border-l border-slate-200 pl-4">
-                  {audit.timeline.map((event) => (
-                    <li key={`${event.step}-${event.summary}`} className="relative">
-                      <span className="absolute -left-[1.35rem] top-1 h-2.5 w-2.5 rounded-full bg-slate-900" />
-                      <p className="text-sm font-semibold text-slate-900">{event.step}</p>
-                      <p className="text-sm text-slate-700">{event.summary}</p>
-                      <p className="text-xs text-slate-500">{event.actor}</p>
-                      {event.detail ? (
-                        <p className="mt-1 text-xs text-slate-600">{event.detail}</p>
-                      ) : null}
-                    </li>
-                  ))}
+                  {audit.timeline.map((event) => {
+                    const recoveryEvent =
+                      event.step === 'Compensated' ||
+                      event.summary.toLowerCase().includes('money back')
+                    const failureEvent =
+                      !recoveryEvent &&
+                      (isAuditFailureLabel(event.step) ||
+                        isAuditFailureLabel(event.summary) ||
+                        (event.detail ? isAuditFailureLabel(event.detail) : false))
+
+                    return (
+                      <li key={`${event.step}-${event.summary}`} className="relative">
+                        <span
+                          className={`absolute -left-[1.35rem] top-1 h-2.5 w-2.5 rounded-full ${
+                            recoveryEvent
+                              ? 'bg-emerald-600'
+                              : failureEvent
+                                ? 'bg-amber-600'
+                                : 'bg-slate-900'
+                          }`}
+                        />
+                        <p
+                          className={`text-sm font-semibold ${
+                            recoveryEvent
+                              ? 'text-emerald-950'
+                              : failureEvent
+                                ? 'text-amber-950'
+                                : 'text-slate-900'
+                          }`}
+                        >
+                          {event.step}
+                        </p>
+                        <p
+                          className={`text-sm ${
+                            recoveryEvent
+                              ? 'text-emerald-900'
+                              : failureEvent
+                                ? 'text-amber-900'
+                                : 'text-slate-700'
+                          }`}
+                        >
+                          {event.summary}
+                        </p>
+                        <p className="text-xs text-slate-500">{event.actor}</p>
+                        {event.detail ? (
+                          <p
+                            className={`mt-1 text-xs ${
+                              recoveryEvent
+                                ? 'text-emerald-800'
+                                : failureEvent
+                                  ? 'text-amber-800'
+                                  : 'text-slate-600'
+                            }`}
+                          >
+                            {event.detail}
+                          </p>
+                        ) : null}
+                      </li>
+                    )
+                  })}
                 </ol>
               </div>
             </section>

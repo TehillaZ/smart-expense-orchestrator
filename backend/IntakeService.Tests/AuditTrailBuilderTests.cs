@@ -114,6 +114,36 @@ public class AuditTrailBuilderTests
 
         Assert.NotNull(audit.Payment);
         Assert.Equal("payment.failed", audit.Payment!.OutcomeType);
-        Assert.Contains(audit.Timeline, item => item.Step == "Payment");
+        Assert.Contains(audit.Timeline, item => item.Step == "PaymentFailed");
+        Assert.Contains(
+            audit.Timeline,
+            item => item.Step == "Compensated"
+                && item.Summary.Contains("money back", StringComparison.OrdinalIgnoreCase));
+        Assert.DoesNotContain(audit.Timeline, item => item.Step == "Payment");
+    }
+
+    [Fact]
+    public void Build_DoesNotAttachPaymentReasonToAiTimelineWhenCompensated()
+    {
+        var submission = new SubmissionStatusResponse(
+            "tracking-5",
+            "correlation-5",
+            "Epsilon LLC",
+            "RS-90021",
+            9500m,
+            "Travel",
+            WorkflowStatuses.Compensated,
+            "Simulated payment processor failure for invoice RS-90021.",
+            "Escalate",
+            0.88m,
+            ["AUTONOMY-CEILING"],
+            "v1",
+            HumanDecision: "Approve");
+
+        var audit = AuditTrailBuilder.Build(submission, notification: null);
+
+        var aiEvent = Assert.Single(audit.Timeline, item => item.Step == "AiRecommendation");
+        Assert.Null(aiEvent.Detail);
+        Assert.Contains("before payment processing", audit.Ai.ReasoningSummary, StringComparison.OrdinalIgnoreCase);
     }
 }

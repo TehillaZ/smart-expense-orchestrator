@@ -16,6 +16,20 @@ describe('BackendStatusBadge', () => {
     expect(badge.className).toContain('bg-violet-100')
   })
 
+  it('styles Compensated as amber warning', () => {
+    render(<BackendStatusBadge status="Compensated" />)
+
+    const badge = screen.getByText('Compensated')
+    expect(badge.className).toContain('bg-amber-100')
+  })
+
+  it('styles PaymentFailed as rose danger', () => {
+    render(<BackendStatusBadge status="PaymentFailed" />)
+
+    const badge = screen.getByText('Payment Failed')
+    expect(badge.className).toContain('bg-rose-100')
+  })
+
   it('falls back to default styling for unknown statuses', () => {
     render(<BackendStatusBadge status="CustomStatus" />)
 

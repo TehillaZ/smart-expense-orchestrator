@@ -29,10 +29,30 @@ public static class AuditTrailBuilder
                 submission.AiRecommendation,
                 submission.AiConfidence,
                 rules,
-                submission.Reason),
+                BuildAiReasoningSummary(submission)),
             humanDecision,
             payment,
             timeline);
+    }
+
+    private static string BuildAiReasoningSummary(SubmissionStatusResponse submission)
+    {
+        if (IsPaymentTerminalStatus(submission.Status))
+        {
+            return submission.AiRecommendation is null
+                ? "AI recommendation was recorded before payment processing."
+                : $"AI recommended {submission.AiRecommendation} before payment processing.";
+        }
+
+        return submission.Reason;
+    }
+
+    private static bool IsPaymentTerminalStatus(string status)
+    {
+        return status is WorkflowStatuses.Paid
+            or WorkflowStatuses.PaymentFailed
+            or WorkflowStatuses.Compensated
+            or WorkflowStatuses.PaymentPending;
     }
 
     private static AuditHumanDecisionSnapshot? BuildHumanDecision(SubmissionStatusResponse submission)
@@ -87,7 +107,12 @@ public static class AuditTrailBuilder
 
     private static bool IsPaidAfterHumanEscalation(SubmissionStatusResponse submission)
     {
-        return submission.Status is WorkflowStatuses.Paid or WorkflowStatuses.PaymentPending
+        var paymentAfterEscalation = submission.Status is WorkflowStatuses.Paid
+            or WorkflowStatuses.PaymentPending
+            or WorkflowStatuses.Compensated
+            or WorkflowStatuses.PaymentFailed;
+
+        return paymentAfterEscalation
             && string.Equals(submission.AiRecommendation, "Escalate", StringComparison.OrdinalIgnoreCase);
     }
 
@@ -148,7 +173,7 @@ public static class AuditTrailBuilder
                 "AiRecommendation",
                 $"AI recommended {submission.AiRecommendation} with confidence {(submission.AiConfidence ?? 0m):0.00}.",
                 "Stub AI Provider",
-                submission.Reason));
+                IsPaymentTerminalStatus(submission.Status) ? null : submission.Reason));
         }
 
         if (submission.Status is WorkflowStatuses.AutoApproved or WorkflowStatuses.Paid
@@ -185,14 +210,46 @@ public static class AuditTrailBuilder
 
         if (payment is not null)
         {
-            events.Add(new AuditTimelineEvent(
-                "Payment",
-                payment.Reason,
-                "Payment Service",
-                payment.OutcomeType));
+            AppendPaymentTimelineEvents(events, payment);
         }
 
         return events;
+    }
+
+    private static void AppendPaymentTimelineEvents(
+        List<AuditTimelineEvent> events,
+        AuditPaymentSnapshot payment)
+    {
+        if (string.Equals(payment.Status, WorkflowStatuses.Compensated, StringComparison.Ordinal))
+        {
+            events.Add(new AuditTimelineEvent(
+                "PaymentFailed",
+                "Payment charge failed after approval.",
+                "Payment Service",
+                payment.Reason));
+            events.Add(new AuditTimelineEvent(
+                "Compensated",
+                "OK — you get your money back. Reserved funds were released and this expense was not paid.",
+                "Payment Service",
+                payment.OutcomeType));
+            return;
+        }
+
+        if (string.Equals(payment.Status, WorkflowStatuses.PaymentFailed, StringComparison.Ordinal))
+        {
+            events.Add(new AuditTimelineEvent(
+                "PaymentFailed",
+                "Payment charge failed.",
+                "Payment Service",
+                payment.Reason));
+            return;
+        }
+
+        events.Add(new AuditTimelineEvent(
+            "Payment",
+            payment.Reason,
+            "Payment Service",
+            payment.OutcomeType));
     }
 
     private static bool WasEscalatedForHumanReview(SubmissionStatusResponse submission)

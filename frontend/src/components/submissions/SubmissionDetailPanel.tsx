@@ -3,8 +3,15 @@ import type { SubmissionDetail } from '../../types/submission'
 import { useAppRole } from '../../hooks/useAppRole'
 import { canViewAuditTrail } from '../../types/userRole'
 import { getInfoRequestMessage, isInfoRequestedSubmission } from '../../utils/requestInfo'
+import { isPaymentCompensationStatus } from '../../utils/workflowSteps'
 import { BackendStatusBadge } from './BackendStatusBadge'
 import { WorkflowStepper } from './WorkflowStepper'
+
+const DEFAULT_COMPENSATION_REASON =
+  'The payment charge failed after approval. Reserved funds were released, and this submission will not be paid.'
+
+const MONEY_BACK_MESSAGE =
+  'The charge did not go through. Reserved funds were released, so you get your money back and this expense was not paid.'
 
 type SubmissionDetailPanelProps = {
   detail: SubmissionDetail
@@ -88,6 +95,47 @@ export function SubmissionDetailPanel({
             Provide the requested detail to your approver outside this demo app. The submission
             stays escalated until they approve or reject.
           </p>
+        </div>
+      ) : null}
+
+      {backendStatus === 'PaymentPending' ? (
+        <div className="mt-4 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-950">
+          <p className="font-semibold">Payment in progress…</p>
+          <p className="mt-1">
+            Funds are being reserved and charged. Refresh shortly to see whether payment
+            succeeds or compensation is applied.
+          </p>
+        </div>
+      ) : null}
+
+      {isPaymentCompensationStatus(backendStatus) ? (
+        <div
+          className={`mt-4 rounded-lg border px-4 py-3 text-sm ${
+            backendStatus === 'Compensated'
+              ? 'border-amber-300 bg-amber-50 text-amber-950'
+              : 'border-rose-300 bg-rose-50 text-rose-950'
+          }`}
+          data-testid="compensation-outcome-banner"
+        >
+          <p className="font-semibold">Payment failed</p>
+          <p className="mt-1">
+            {detail.reason?.trim() ||
+              detail.notificationReason?.trim() ||
+              DEFAULT_COMPENSATION_REASON}
+          </p>
+          {backendStatus === 'Compensated' ? (
+            <div
+              className="mt-3 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-emerald-950"
+              data-testid="money-back-message"
+            >
+              <p className="font-semibold">OK — you get your money back</p>
+              <p className="mt-1 text-sm">{MONEY_BACK_MESSAGE}</p>
+            </div>
+          ) : (
+            <p className="mt-2 text-xs opacity-90">
+              Compensation did not complete successfully. Contact support if funds remain reserved.
+            </p>
+          )}
         </div>
       ) : null}
 
