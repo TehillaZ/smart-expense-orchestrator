@@ -1,4 +1,3 @@
-![ApprovalFlow — AI-Powered Invoice & Expense Approval System](docs/images/approvalflow-hero.png)
 
 # ApprovalFlow Platform
 
@@ -199,20 +198,6 @@ After CI succeeds on `main`, CD ([`.github/workflows/cd.yml`](.github/workflows/
 - Dashboard metrics are pre-aggregated in Intake state for demo simplicity rather than a separate analytics database.
 - JWT auth is demo-oriented (self-signed signing key via config); roles are Submitter / Approver / Admin.
 - Payment failure journey is seeded with invoice `RS-90021` from the shipped fixtures (same path as assignment `INV-1012`).
-
-## Submission Checklist
-
-- [x] Repository is a single private monorepo with everything needed to run and test
-- [x] Must-Have requirements (M1–M18) implemented on the evaluation branch
-- [x] Nice-to-Have requirements (N1–N6) implemented
-- [x] `docker compose -f infra/docker-compose.yml up --build` starts the system
-- [x] `dotnet test backend/ApprovalFlow.sln` and frontend checks available
-- [x] `pwsh -File scripts/verify-journeys.ps1` covers the four journeys + anti-cheese guards
-- [x] README explains technologies, how to run, how to test, and includes a system diagram
-- [x] Demo recording linked above
-- [x] Repository URL shared with evaluators
-- [ ] Evaluators added as contributors: `alonf`, `VenyaBrodetskiy`, `holohup`, `milaShurupova`
-- [ ] After deadline (12/07): stop committing to `main`; continue only on `dev` if needed
 
 ## License
 
