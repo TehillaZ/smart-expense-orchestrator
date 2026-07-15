@@ -26,7 +26,7 @@ public class GatewayAuthIntegrationTests : IClassFixture<WebApplicationFactory<P
     {
         using var client = _factory.CreateClient();
 
-        var response = await client.PostAsJsonAsync("/auth/login", new { role = AppRoles.Submitter });
+        var response = await client.PostAsJsonAsync("/auth/login", new { role = AppRoles.Submitter, username = "tehila" });
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 
@@ -34,6 +34,17 @@ public class GatewayAuthIntegrationTests : IClassFixture<WebApplicationFactory<P
         Assert.NotNull(payload);
         Assert.False(string.IsNullOrWhiteSpace(payload.Token));
         Assert.Equal(AppRoles.Submitter, payload.Role);
+        Assert.Equal("tehila", payload.Username);
+    }
+
+    [Fact]
+    public async Task Login_WithoutUsername_ReturnsBadRequest()
+    {
+        using var client = _factory.CreateClient();
+
+        var response = await client.PostAsJsonAsync("/auth/login", new { role = AppRoles.Submitter });
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
 
     [Fact]

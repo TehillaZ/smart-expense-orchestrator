@@ -31,6 +31,7 @@ public sealed record SubmissionStatusResponse(
     decimal? AutonomyCeilingAtDecision = null,
     string? HumanDecision = null,
     string? HumanDecisionComment = null,
+    string? HumanDecisionActor = null,
     int DuplicateResubmitCount = 0);
 
 public sealed record ValidationErrorResponse(

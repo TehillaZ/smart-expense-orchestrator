@@ -40,7 +40,8 @@ public sealed record SubmissionWorkflowState(
     IReadOnlyList<string>? CitedRules = null,
     string? PolicyVersion = null,
     string? HumanDecision = null,
-    string? HumanDecisionComment = null);
+    string? HumanDecisionComment = null,
+    string? HumanDecisionActor = null);
 
 public sealed record PaymentSagaState(
     string TrackingId,

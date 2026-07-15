@@ -199,6 +199,12 @@ export function SubmissionDetailPanel({
             <dd className="text-slate-900">{formatAmount(detail.autonomyCeilingAtDecision)}</dd>
           </div>
         ) : null}
+        {detail.humanDecisionActor ? (
+          <div>
+            <dt className="font-medium text-slate-500">Reviewed by</dt>
+            <dd className="text-slate-900">{detail.humanDecisionActor}</dd>
+          </div>
+        ) : null}
       </dl>
 
       {showAuditLink ? (

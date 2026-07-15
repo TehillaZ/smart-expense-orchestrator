@@ -27,6 +27,7 @@ export type SubmissionStatusResponse = {
   autonomyCeilingAtDecision?: number | null
   humanDecision?: string | null
   humanDecisionComment?: string | null
+  humanDecisionActor?: string | null
   duplicateResubmitCount?: number
 }
 
@@ -57,6 +58,7 @@ export type EscalationQueueItem = {
   reason: string
   humanDecision?: string | null
   humanDecisionComment?: string | null
+  humanDecisionActor?: string | null
 }
 
 export type ApprovalDecision = 'Approve' | 'Reject' | 'RequestInfo'

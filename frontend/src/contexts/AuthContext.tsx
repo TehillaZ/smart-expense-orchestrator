@@ -17,7 +17,7 @@ import type { UserRole } from '../types/userRole'
 type AuthContextValue = {
   session: AuthSession | null
   isAuthenticated: boolean
-  login: (role: UserRole) => Promise<void>
+  login: (role: UserRole, username: string) => Promise<void>
   logout: () => void
 }
 
@@ -26,8 +26,8 @@ const AuthContext = createContext<AuthContextValue | null>(null)
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<AuthSession | null>(() => getAuthSession())
 
-  const login = useCallback(async (role: UserRole) => {
-    const nextSession = await loginWithRole(role)
+  const login = useCallback(async (role: UserRole, username: string) => {
+    const nextSession = await loginWithRole(role, username)
     setSession(nextSession)
   }, [])
 

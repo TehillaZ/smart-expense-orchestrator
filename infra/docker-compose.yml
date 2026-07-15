@@ -40,8 +40,6 @@ services:
 
   redis:
     image: "redis:alpine"
-    ports:
-      - "6379:6379"
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
@@ -76,6 +74,7 @@ services:
 
   intakeservice-dapr:
     image: "daprio/daprd:1.14.4"
+    restart: unless-stopped
     command: [
       "/daprd",
       "--app-id", "intakeservice",
@@ -85,6 +84,8 @@ services:
     volumes:
       - ./dapr/components:/components
     depends_on:
+      redis:
+        condition: service_healthy
       intakeservice:
         condition: service_healthy
     network_mode: "service:intakeservice"
@@ -123,6 +124,7 @@ services:
 
   approvalservice-dapr:
     image: "daprio/daprd:1.14.4"
+    restart: unless-stopped
     command: [
       "/daprd",
       "--app-id", "approvalservice",
@@ -132,8 +134,10 @@ services:
     volumes:
       - ./dapr/components:/components
     depends_on:
+      redis:
+        condition: service_healthy
       approvalservice:
-        condition: service_started
+        condition: service_healthy
     network_mode: "service:approvalservice"
 
   paymentservice:
@@ -162,6 +166,7 @@ services:
 
   paymentservice-dapr:
     image: "daprio/daprd:1.14.4"
+    restart: unless-stopped
     command: [
       "/daprd",
       "--app-id", "paymentservice",
@@ -171,6 +176,8 @@ services:
     volumes:
       - ./dapr/components:/components
     depends_on:
+      redis:
+        condition: service_healthy
       paymentservice:
         condition: service_healthy
     network_mode: "service:paymentservice"
@@ -201,6 +208,7 @@ services:
 
   notificationservice-dapr:
     image: "daprio/daprd:1.14.4"
+    restart: unless-stopped
     command: [
       "/daprd",
       "--app-id", "notificationservice",
@@ -210,6 +218,8 @@ services:
     volumes:
       - ./dapr/components:/components
     depends_on:
+      redis:
+        condition: service_healthy
       notificationservice:
         condition: service_healthy
     network_mode: "service:notificationservice"

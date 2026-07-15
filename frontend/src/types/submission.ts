@@ -26,6 +26,7 @@ export type SubmissionRecord = {
   duplicateResubmitCount?: number
   humanDecision?: string | null
   humanDecisionComment?: string | null
+  humanDecisionActor?: string | null
 }
 
 export type SubmissionDetail = SubmissionRecord & {

@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Scalar.AspNetCore;
+using Yarp.ReverseProxy.Transforms;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -48,7 +49,24 @@ builder.Services
 builder.Services.AddAuthorization();
 
 builder.Services.AddReverseProxy()
-    .LoadFromConfig(builder.Configuration.GetSection("ReverseProxy"));
+    .LoadFromConfig(builder.Configuration.GetSection("ReverseProxy"))
+    .AddTransforms(transformBuilderContext =>
+    {
+        transformBuilderContext.AddRequestTransform(transformContext =>
+        {
+            var username = GatewayUserIdentityResolver.ResolveUsername(transformContext.HttpContext.User);
+            if (string.IsNullOrWhiteSpace(username))
+            {
+                return ValueTask.CompletedTask;
+            }
+
+            transformContext.ProxyRequest.Headers.Remove(UserIdentityConstants.HeaderName);
+            transformContext.ProxyRequest.Headers.TryAddWithoutValidation(
+                UserIdentityConstants.HeaderName,
+                username);
+            return ValueTask.CompletedTask;
+        });
+    });
 
 builder.Services.AddRateLimiter(options =>
 {
@@ -99,6 +117,7 @@ app.UseRateLimiter();
 app.UseMiddleware<CorrelationIdMiddleware>();
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseMiddleware<GatewayUserIdentityMiddleware>();
 app.UseMiddleware<GatewayAuthorizationMiddleware>();
 app.MapHealthRoutes();
 app.MapAuthRoutes();

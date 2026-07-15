@@ -19,11 +19,14 @@ public static class AuthRoutes
                 return Results.BadRequest(new { message = "Role must be Submitter, Approver, or Admin." });
             }
 
+            if (string.IsNullOrWhiteSpace(request.Username))
+            {
+                return Results.BadRequest(new { message = "Username is required." });
+            }
+
             try
             {
-                var username = string.IsNullOrWhiteSpace(request.Username)
-                    ? request.Role.ToLowerInvariant()
-                    : request.Username.Trim();
+                var username = request.Username.Trim();
 
                 var tokenResult = tokenService.CreateToken(request.Role, username);
 

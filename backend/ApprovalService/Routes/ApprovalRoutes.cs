@@ -28,7 +28,8 @@ public static class ApprovalRoutes
                         state.CitedRules ?? [],
                         state.Reason,
                         state.HumanDecision,
-                        state.HumanDecisionComment))
+                        state.HumanDecisionComment,
+                        state.HumanDecisionActor))
                     .ToArray();
 
                 logger.LogInformation("Returned {Count} escalated submissions.", queue.Length);
@@ -77,13 +78,20 @@ public static class ApprovalRoutes
             string trackingId,
             ApprovalDecisionRequest request,
             ApprovalDecisionHandler decisionHandler,
+            HttpContext httpContext,
             ILoggerFactory loggerFactory) =>
         {
             var logger = loggerFactory.CreateLogger("ApprovalRoutes");
 
             try
             {
-                var (response, errors) = await decisionHandler.ApplyDecisionAsync(trackingId, request);
+                var decisionActor = ApproverIdentityResolver.Resolve(
+                    httpContext.Request.Headers,
+                    request.DecidedBy);
+                var (response, errors) = await decisionHandler.ApplyDecisionAsync(
+                    trackingId,
+                    request,
+                    decisionActor);
                 if (errors.Count > 0)
                 {
                     logger.LogWarning(

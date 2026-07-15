@@ -89,6 +89,7 @@ function toSubmissionRecord(
     duplicateResubmitCount,
     humanDecision: intake.humanDecision ?? null,
     humanDecisionComment: intake.humanDecisionComment ?? null,
+    humanDecisionActor: intake.humanDecisionActor ?? null,
   }
 }
 

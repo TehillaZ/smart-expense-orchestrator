@@ -117,6 +117,11 @@ public static class SubmissionStateResolver
             return true;
         }
 
+        if (candidate.HumanDecisionActor is not null && current.HumanDecisionActor is null)
+        {
+            return true;
+        }
+
         if (candidate.CitedRules is { Count: > 0 } && current.CitedRules is not { Count: > 0 })
         {
             return true;

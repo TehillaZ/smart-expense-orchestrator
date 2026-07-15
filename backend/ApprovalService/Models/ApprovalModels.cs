@@ -3,7 +3,8 @@ namespace ApprovalService.Models;
 public sealed record ApprovalDecisionRequest(
     string? Decision,
     string? Comment,
-    string? CorrelationId);
+    string? CorrelationId,
+    string? DecidedBy = null);
 
 public sealed record ApprovalDecisionResponse(
     string TrackingId,
@@ -38,4 +39,5 @@ public sealed record SubmissionState(
     string? PolicyVersion = null,
     decimal? AutonomyCeilingAtDecision = null,
     string? HumanDecision = null,
-    string? HumanDecisionComment = null);
+    string? HumanDecisionComment = null,
+    string? HumanDecisionActor = null);
