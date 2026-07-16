@@ -13,6 +13,7 @@ public static class GatewayRouteAccess
 
         var normalized = path.Value!.TrimEnd('/');
         return normalized.Equals("/health", StringComparison.OrdinalIgnoreCase)
+            || normalized.Equals("/metrics", StringComparison.OrdinalIgnoreCase)
             || normalized.Equals("/auth/login", StringComparison.OrdinalIgnoreCase)
             || normalized.Equals("/openapi/v1.json", StringComparison.OrdinalIgnoreCase)
             || normalized.StartsWith("/openapi", StringComparison.OrdinalIgnoreCase)

@@ -8,6 +8,7 @@ public class GatewayRouteAccessTests
 {
     [Theory]
     [InlineData("/health")]
+    [InlineData("/metrics")]
     [InlineData("/auth/login")]
     [InlineData("/openapi/v1.json")]
     [InlineData("/scalar")]

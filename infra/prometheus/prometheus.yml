@@ -1,0 +1,39 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: apigateway
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["apigateway:8080"]
+        labels:
+          service: apigateway
+
+  - job_name: intakeservice
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["intakeservice:8080"]
+        labels:
+          service: intakeservice
+
+  - job_name: approvalservice
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["approvalservice:8080"]
+        labels:
+          service: approvalservice
+
+  - job_name: paymentservice
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["paymentservice:8080"]
+        labels:
+          service: paymentservice
+
+  - job_name: notificationservice
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["notificationservice:8080"]
+        labels:
+          service: notificationservice

@@ -9,17 +9,21 @@ EXPOSE 8080
 
 FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 WORKDIR /src
+COPY ["backend/docker-restore.sh", "backend/docker-restore.sh"]
 COPY ["backend/ApprovalFlow.PolicyRag/ApprovalFlow.PolicyRag.csproj", "backend/ApprovalFlow.PolicyRag/"]
 COPY ["backend/ApprovalFlow.Observability/ApprovalFlow.Observability.csproj", "backend/ApprovalFlow.Observability/"]
 COPY ["backend/ApprovalFlow.Reliability/ApprovalFlow.Reliability.csproj", "backend/ApprovalFlow.Reliability/"]
 COPY ["backend/ApprovalService/ApprovalService.csproj", "backend/ApprovalService/"]
-RUN dotnet restore "backend/ApprovalService/ApprovalService.csproj"
+RUN sed -i 's/\r$//' backend/docker-restore.sh && chmod +x backend/docker-restore.sh
+RUN --network=host --mount=type=cache,target=/root/.nuget/packages \
+    ./backend/docker-restore.sh "backend/ApprovalService/ApprovalService.csproj"
 COPY ["backend/ApprovalFlow.PolicyRag/", "backend/ApprovalFlow.PolicyRag/"]
 COPY ["backend/ApprovalFlow.Observability/", "backend/ApprovalFlow.Observability/"]
 COPY ["backend/ApprovalFlow.Reliability/", "backend/ApprovalFlow.Reliability/"]
 COPY ["backend/ApprovalService/", "backend/ApprovalService/"]
 WORKDIR "/src/backend/ApprovalService"
-RUN dotnet publish "ApprovalService.csproj" \
+RUN --mount=type=cache,target=/root/.nuget/packages \
+    dotnet publish "ApprovalService.csproj" \
     --configuration Release \
     --no-restore \
     --output /app/publish \
