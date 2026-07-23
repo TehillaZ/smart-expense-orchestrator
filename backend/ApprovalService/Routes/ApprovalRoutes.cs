@@ -29,7 +29,8 @@ public static class ApprovalRoutes
                         state.Reason,
                         state.HumanDecision,
                         state.HumanDecisionComment,
-                        state.HumanDecisionActor))
+                        state.HumanDecisionActor,
+                        state.AiReasoningSummary))
                     .ToArray();
 
                 logger.LogInformation("Returned {Count} escalated submissions.", queue.Length);

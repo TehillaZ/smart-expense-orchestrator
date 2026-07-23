@@ -112,6 +112,7 @@ function toSubmissionDetail(
     aiRecommendation: intake.aiRecommendation,
     aiConfidence: intake.aiConfidence,
     citedRules: intake.citedRules ?? undefined,
+    aiReasoningSummary: intake.aiReasoningSummary,
     policyVersion: intake.policyVersion,
     autonomyCeilingAtDecision: intake.autonomyCeilingAtDecision,
   }

@@ -40,4 +40,5 @@ public sealed record SubmissionState(
     decimal? AutonomyCeilingAtDecision = null,
     string? HumanDecision = null,
     string? HumanDecisionComment = null,
-    string? HumanDecisionActor = null);
+    string? HumanDecisionActor = null,
+    string? AiReasoningSummary = null);

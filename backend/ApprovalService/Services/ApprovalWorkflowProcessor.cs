@@ -81,6 +81,7 @@ public sealed class ApprovalWorkflowProcessor
                 AiRecommendation = evaluation.AiRecommendation.Recommendation,
                 AiConfidence = evaluation.AiRecommendation.Confidence,
                 CitedRules = MergeCitedRules(evaluation.AppliedRules, evaluation.AiRecommendation.CitedRules),
+                AiReasoningSummary = evaluation.AiRecommendation.ReasoningSummary,
                 PolicyVersion = settings.PolicyVersion,
                 AutonomyCeilingAtDecision = settings.AutonomyCeiling,
             };

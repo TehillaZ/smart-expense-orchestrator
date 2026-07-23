@@ -35,6 +35,7 @@ export async function loadEscalationItem(
     aiRecommendation: detail.aiRecommendation ?? 'Escalate',
     confidence: detail.aiConfidence ?? 0,
     citedRules: detail.citedRules ?? [],
+    aiReasoningSummary: detail.aiReasoningSummary,
     reason: detail.reason,
     humanDecision: detail.humanDecision ?? null,
     humanDecisionComment: detail.humanDecisionComment ?? null,

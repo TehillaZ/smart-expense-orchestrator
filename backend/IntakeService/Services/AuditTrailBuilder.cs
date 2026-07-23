@@ -37,6 +37,11 @@ public static class AuditTrailBuilder
 
     private static string BuildAiReasoningSummary(SubmissionStatusResponse submission)
     {
+        if (!string.IsNullOrWhiteSpace(submission.AiReasoningSummary))
+        {
+            return submission.AiReasoningSummary;
+        }
+
         if (IsPaymentTerminalStatus(submission.Status))
         {
             return submission.AiRecommendation is null

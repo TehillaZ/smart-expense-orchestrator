@@ -210,6 +210,11 @@ export function EscalationDetailPage() {
                 <span className="font-medium">Cited rules:</span> {item.citedRules.join(', ')}
               </p>
             ) : null}
+            {item.aiReasoningSummary ? (
+              <p className="mt-3 break-words text-sm text-violet-900">
+                <span className="font-medium">AI reasoning:</span> {item.aiReasoningSummary}
+              </p>
+            ) : null}
           </section>
         </div>
 

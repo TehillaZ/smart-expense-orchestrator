@@ -53,6 +53,7 @@ export type SubmissionDetail = SubmissionRecord & {
   aiRecommendation?: string | null
   aiConfidence?: number | null
   citedRules?: string[]
+  aiReasoningSummary?: string | null
   policyVersion?: string | null
   autonomyCeilingAtDecision?: number | null
 }

@@ -52,4 +52,5 @@ public sealed record EscalationQueueItem(
     string Reason,
     string? HumanDecision = null,
     string? HumanDecisionComment = null,
-    string? HumanDecisionActor = null);
+    string? HumanDecisionActor = null,
+    string? AiReasoningSummary = null);

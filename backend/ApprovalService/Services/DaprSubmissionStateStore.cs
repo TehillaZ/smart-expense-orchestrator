@@ -144,3 +144,4 @@ public sealed class DaprSubmissionStateStore : ISubmissionStateStore
         return index ?? [];
     }
 }
+
