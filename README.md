@@ -65,7 +65,7 @@ UI → API Gateway (auth, rate limit, routing) → Intake Service
 1. Clone the repository and copy environment / secrets placeholders:
 
    ```powershell
-   copy .env.example .env
+   copy infra\.env.example infra\.env
    copy infra\dapr\components\secrets.example.json infra\dapr\components\secrets.json
    ```
 
