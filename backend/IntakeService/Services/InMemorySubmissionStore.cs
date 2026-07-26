@@ -1,6 +1,5 @@
 using System.Collections.Concurrent;
 using IntakeService.Models;
-
 namespace IntakeService.Services;
 
 public sealed class InMemorySubmissionStore : ISubmissionStore
