@@ -38,8 +38,6 @@ services:
     build:
       context: ..
       dockerfile: backend/ApiGateway/Dockerfile
-      # Prefer host network during build so NuGet can resolve api.nuget.org (NU1301).
-      network: host
     ports:
       - "8080:8080"
     environment:
@@ -79,7 +77,6 @@ services:
     build:
       context: ..
       dockerfile: backend/IntakeService/Dockerfile
-      network: host
     ports:
       - "5001:8080"
     environment:
@@ -122,7 +119,6 @@ services:
     build:
       context: ..
       dockerfile: backend/ApprovalService/Dockerfile
-      network: host
     ports:
       - "5002:8080"
     environment:
@@ -173,7 +169,6 @@ services:
     build:
       context: ..
       dockerfile: backend/PaymentService/Dockerfile
-      network: host
     ports:
       - "5003:8080"
     environment:
@@ -216,7 +211,6 @@ services:
     build:
       context: ..
       dockerfile: backend/NotificationService/Dockerfile
-      network: host
     ports:
       - "5004:8080"
     environment:

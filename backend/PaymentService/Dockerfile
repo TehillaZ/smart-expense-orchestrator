@@ -14,7 +14,7 @@ COPY ["backend/ApprovalFlow.Observability/ApprovalFlow.Observability.csproj", "b
 COPY ["backend/ApprovalFlow.Reliability/ApprovalFlow.Reliability.csproj", "backend/ApprovalFlow.Reliability/"]
 COPY ["backend/PaymentService/PaymentService.csproj", "backend/PaymentService/"]
 RUN sed -i 's/\r$//' backend/docker-restore.sh && chmod +x backend/docker-restore.sh
-RUN --network=host --mount=type=cache,target=/root/.nuget/packages \
+RUN --mount=type=cache,target=/root/.nuget/packages \
     ./backend/docker-restore.sh "backend/PaymentService/PaymentService.csproj"
 COPY ["backend/ApprovalFlow.Observability/", "backend/ApprovalFlow.Observability/"]
 COPY ["backend/ApprovalFlow.Reliability/", "backend/ApprovalFlow.Reliability/"]

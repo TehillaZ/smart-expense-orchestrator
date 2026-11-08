@@ -15,7 +15,7 @@ COPY ["backend/ApprovalFlow.Observability/ApprovalFlow.Observability.csproj", "b
 COPY ["backend/ApprovalFlow.Reliability/ApprovalFlow.Reliability.csproj", "backend/ApprovalFlow.Reliability/"]
 COPY ["backend/ApprovalService/ApprovalService.csproj", "backend/ApprovalService/"]
 RUN sed -i 's/\r$//' backend/docker-restore.sh && chmod +x backend/docker-restore.sh
-RUN --network=host --mount=type=cache,target=/root/.nuget/packages \
+RUN --mount=type=cache,target=/root/.nuget/packages \
     ./backend/docker-restore.sh "backend/ApprovalService/ApprovalService.csproj"
 COPY ["backend/ApprovalFlow.PolicyRag/", "backend/ApprovalFlow.PolicyRag/"]
 COPY ["backend/ApprovalFlow.Observability/", "backend/ApprovalFlow.Observability/"]

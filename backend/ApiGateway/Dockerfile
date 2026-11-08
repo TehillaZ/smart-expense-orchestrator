@@ -13,7 +13,7 @@ COPY ["backend/docker-restore.sh", "backend/docker-restore.sh"]
 COPY ["backend/ApprovalFlow.Observability/ApprovalFlow.Observability.csproj", "backend/ApprovalFlow.Observability/"]
 COPY ["backend/ApiGateway/ApiGateway.csproj", "backend/ApiGateway/"]
 RUN sed -i 's/\r$//' backend/docker-restore.sh && chmod +x backend/docker-restore.sh
-RUN --network=host --mount=type=cache,target=/root/.nuget/packages \
+RUN --mount=type=cache,target=/root/.nuget/packages \
     ./backend/docker-restore.sh "backend/ApiGateway/ApiGateway.csproj"
 COPY ["backend/ApprovalFlow.Observability/", "backend/ApprovalFlow.Observability/"]
 COPY ["backend/ApiGateway/", "backend/ApiGateway/"]
