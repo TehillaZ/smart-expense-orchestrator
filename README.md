@@ -1,5 +1,5 @@
 
-# ApprovalFlow Platform
+# Smart Expense Orchestrator
 
 Microservice-based invoice and expense approval system built with .NET 9, Dapr, and React. Submissions return a tracking id immediately, policy and AI evaluate each item asynchronously, safe cases auto-approve, risky cases escalate to a human, and approved items flow through a payment saga with compensation on failure.
 
