@@ -51,4 +51,42 @@ public class ApproverIdentityResolverTests
 
         Assert.Null(username);
     }
+
+    [Fact]
+    public void TryResolve_WithNewLineInName_RejectsSoNoFakeLogLineCanBeCreated()
+    {
+        var headers = new HeaderDictionary();
+
+        var accepted = ApproverIdentityResolver.TryResolve(headers, "Tehila\nadmin approved", out var username);
+
+        Assert.False(accepted);
+        Assert.Null(username);
+    }
+
+    [Fact]
+    public void TryResolve_WithCarriageReturnInName_Rejects()
+    {
+        var headers = new HeaderDictionary();
+
+        var accepted = ApproverIdentityResolver.TryResolve(headers, "Tehila\radmin approved", out var username);
+
+        Assert.False(accepted);
+        Assert.Null(username);
+    }
+
+    [Fact]
+    public void Normalize_WithCleanNameAndTrailingSpaces_KeepsNameAndTrimsSpaces()
+    {
+        var username = ApproverIdentityResolver.Normalize("Tehila admin approved  ");
+
+        Assert.Equal("Tehila admin approved", username);
+    }
+
+    [Fact]
+    public void Normalize_WithNull_ReturnsNull()
+    {
+        var username = ApproverIdentityResolver.Normalize(null);
+
+        Assert.Null(username);
+    }
 }
