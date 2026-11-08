@@ -86,9 +86,19 @@ public static class ApprovalRoutes
 
             try
             {
-                var decisionActor = ApproverIdentityResolver.Resolve(
-                    httpContext.Request.Headers,
-                    request.DecidedBy);
+                if (!ApproverIdentityResolver.TryResolve(
+                        httpContext.Request.Headers,
+                        request.DecidedBy,
+                        out var decisionActor))
+                {
+                    // The rejected name itself is never logged: it is exactly the untrusted text we refused.
+                    logger.LogWarning(
+                        "Rejected approval decision for {TrackingId}: approver name contains control characters.",
+                        trackingId);
+                    return Results.BadRequest(new ValidationErrorResponse(
+                        [ApproverIdentityResolver.InvalidApproverNameError]));
+                }
+
                 var (response, errors) = await decisionHandler.ApplyDecisionAsync(
                     trackingId,
                     request,
