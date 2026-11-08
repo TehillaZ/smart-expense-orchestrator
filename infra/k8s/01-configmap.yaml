@@ -1,0 +1,17 @@
+# Non-secret application config. Mirrors infra/.env's LlmProvider__* values.
+# Defaults to Stub so the cluster comes up safely with zero external dependencies;
+# switch Provider/Model here (and fill real keys into 02-secret.yaml) for a real LLM.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: approvalflow-config
+  namespace: approvalflow
+data:
+  LlmProvider__Provider: "Stub"
+  LlmProvider__Model: "stub"
+  LlmProvider__BaseUrl: ""
+  LlmProvider__FallbackProvider: ""
+  LlmProvider__FallbackModel: ""
+  LlmProvider__FallbackBaseUrl: ""
+  LlmProvider__RetryCount: "0"
+  LlmProvider__RetryDelayMs: "0"

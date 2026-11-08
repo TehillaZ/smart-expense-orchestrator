@@ -1,0 +1,57 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: approvalservice
+  namespace: approvalflow
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: approvalservice
+  template:
+    metadata:
+      labels:
+        app: approvalservice
+      annotations:
+        dapr.io/enabled: "true"
+        dapr.io/app-id: "approvalservice"
+        dapr.io/app-port: "8080"
+        dapr.io/volume-mounts-readonly: "dapr-secrets:/components"
+    spec:
+      volumes:
+        - name: dapr-secrets
+          secret:
+            secretName: approvalflow-dapr-secrets-file
+      containers:
+        - name: approvalservice
+          image: approvalservice:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8080
+          envFrom:
+            - configMapRef:
+                name: approvalflow-config
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: approvalservice
+  namespace: approvalflow
+spec:
+  selector:
+    app: approvalservice
+  ports:
+    - port: 8080
+      targetPort: 8080

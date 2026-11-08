@@ -17,6 +17,9 @@
 # Local Dapr secrets (keep secrets.example.json committed)
 infra/dapr/components/secrets.json
 
+# Local Kubernetes secrets (keep 02-secret.example.yaml committed)
+infra/k8s/02-secret.yaml
+
 # IDE/editor artifacts
 .vs/
 .vscode/
