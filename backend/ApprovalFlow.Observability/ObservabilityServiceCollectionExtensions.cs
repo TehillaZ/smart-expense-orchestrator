@@ -12,6 +12,8 @@ namespace ApprovalFlow.Observability;
 
 public static class ObservabilityServiceCollectionExtensions
 {
+    public const string PrometheusMetricsPath = "/metrics";
+
     public static WebApplicationBuilder AddApprovalFlowObservability(
         this WebApplicationBuilder builder,
         string serviceName)
@@ -37,6 +39,8 @@ public static class ObservabilityServiceCollectionExtensions
                 .AddAspNetCoreInstrumentation(aspNetCoreOptions =>
                 {
                     aspNetCoreOptions.RecordException = true;
+                    aspNetCoreOptions.Filter = httpContext =>
+                        !httpContext.Request.Path.StartsWithSegments(PrometheusMetricsPath);
                     aspNetCoreOptions.EnrichWithHttpRequest = (activity, request) =>
                     {
                         EnrichWithCorrelationId(activity, request.Headers[CorrelationConstants.HeaderName].FirstOrDefault());
@@ -57,6 +61,7 @@ public static class ObservabilityServiceCollectionExtensions
                 .AddHttpClientInstrumentation()
                 .AddRuntimeInstrumentation()
                 .AddMeter(ObservabilityMetrics.MeterName)
+                .AddPrometheusExporter()
                 .AddOtlpExporter(otlpExporterOptions =>
                 {
                     otlpExporterOptions.Endpoint = otlpEndpoint;
@@ -82,6 +87,7 @@ public static class ObservabilityServiceCollectionExtensions
         }
 
         app.UseMiddleware<RequestMetricsMiddleware>();
+        app.MapPrometheusScrapingEndpoint(PrometheusMetricsPath);
         return app;
     }
 

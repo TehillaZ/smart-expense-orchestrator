@@ -156,6 +156,13 @@ export function SubmissionDetailPanel({
         {detail.reason}
       </p>
 
+      {detail.aiReasoningSummary ? (
+        <p className="mt-2 rounded-lg border border-violet-200 bg-violet-50 px-4 py-3 text-sm text-violet-900">
+          <span className="font-medium text-violet-950">AI reasoning: </span>
+          {detail.aiReasoningSummary}
+        </p>
+      ) : null}
+
       {detail.notificationReason && detail.notificationReason !== detail.reason ? (
         <p className="mt-2 text-sm text-slate-600">
           <span className="font-medium">Payment note: </span>
@@ -197,6 +204,12 @@ export function SubmissionDetailPanel({
           <div>
             <dt className="font-medium text-slate-500">Ceiling at decision</dt>
             <dd className="text-slate-900">{formatAmount(detail.autonomyCeilingAtDecision)}</dd>
+          </div>
+        ) : null}
+        {detail.humanDecisionActor ? (
+          <div>
+            <dt className="font-medium text-slate-500">Reviewed by</dt>
+            <dd className="text-slate-900">{detail.humanDecisionActor}</dd>
           </div>
         ) : null}
       </dl>

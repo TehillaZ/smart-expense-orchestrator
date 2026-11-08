@@ -9,6 +9,7 @@ export function LoginPage() {
   const navigate = useNavigate()
   const location = useLocation()
   const [selectedRole, setSelectedRole] = useState<UserRole>('Submitter')
+  const [username, setUsername] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
@@ -25,7 +26,7 @@ export function LoginPage() {
     setErrorMessage(null)
 
     try {
-      await login(selectedRole)
+      await login(selectedRole, username)
       navigate(getDefaultRoute(selectedRole), { replace: true })
     } catch (error) {
       const message =
@@ -47,11 +48,28 @@ export function LoginPage() {
           </p>
           <h1 className="mt-2 text-2xl font-semibold text-slate-900">Sign in</h1>
           <p className="mt-2 text-sm text-slate-500">
-            Choose a demo role to receive a JWT from the gateway.
+            Choose a role and enter your name to receive a JWT from the gateway.
           </p>
         </div>
 
         <form className="space-y-5" onSubmit={handleSubmit}>
+          <div>
+            <label htmlFor="username" className="block text-sm font-medium text-slate-700">
+              Your name
+            </label>
+            <input
+              id="username"
+              name="username"
+              type="text"
+              required
+              autoComplete="name"
+              value={username}
+              onChange={(event) => setUsername(event.target.value)}
+              placeholder="e.g. Tehila Cohen"
+              className="mt-2 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-200"
+            />
+          </div>
+
           <fieldset className="space-y-3">
             <legend className="text-sm font-medium text-slate-700">Role</legend>
             {USER_ROLES.map((role) => {
@@ -94,7 +112,7 @@ export function LoginPage() {
 
           <button
             type="submit"
-            disabled={isSubmitting}
+            disabled={isSubmitting || !username.trim()}
             className="w-full rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {isSubmitting ? 'Signing in…' : 'Continue'}

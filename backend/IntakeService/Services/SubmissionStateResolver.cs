@@ -112,7 +112,17 @@ public static class SubmissionStateResolver
             return true;
         }
 
+        if (candidate.AiReasoningSummary is not null && current.AiReasoningSummary is null)
+        {
+            return true;
+        }
+
         if (candidate.HumanDecision is not null && current.HumanDecision is null)
+        {
+            return true;
+        }
+
+        if (candidate.HumanDecisionActor is not null && current.HumanDecisionActor is null)
         {
             return true;
         }

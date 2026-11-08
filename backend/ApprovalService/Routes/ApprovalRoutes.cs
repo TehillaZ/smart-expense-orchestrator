@@ -28,7 +28,9 @@ public static class ApprovalRoutes
                         state.CitedRules ?? [],
                         state.Reason,
                         state.HumanDecision,
-                        state.HumanDecisionComment))
+                        state.HumanDecisionComment,
+                        state.HumanDecisionActor,
+                        state.AiReasoningSummary))
                     .ToArray();
 
                 logger.LogInformation("Returned {Count} escalated submissions.", queue.Length);
@@ -77,13 +79,30 @@ public static class ApprovalRoutes
             string trackingId,
             ApprovalDecisionRequest request,
             ApprovalDecisionHandler decisionHandler,
+            HttpContext httpContext,
             ILoggerFactory loggerFactory) =>
         {
             var logger = loggerFactory.CreateLogger("ApprovalRoutes");
 
             try
             {
-                var (response, errors) = await decisionHandler.ApplyDecisionAsync(trackingId, request);
+                if (!ApproverIdentityResolver.TryResolve(
+                        httpContext.Request.Headers,
+                        request.DecidedBy,
+                        out var decisionActor))
+                {
+                    // The rejected name itself is never logged: it is exactly the untrusted text we refused.
+                    logger.LogWarning(
+                        "Rejected approval decision for {TrackingId}: approver name contains control characters.",
+                        trackingId);
+                    return Results.BadRequest(new ValidationErrorResponse(
+                        [ApproverIdentityResolver.InvalidApproverNameError]));
+                }
+
+                var (response, errors) = await decisionHandler.ApplyDecisionAsync(
+                    trackingId,
+                    request,
+                    decisionActor);
                 if (errors.Count > 0)
                 {
                     logger.LogWarning(

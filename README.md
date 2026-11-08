@@ -65,7 +65,7 @@ UI → API Gateway (auth, rate limit, routing) → Intake Service
 1. Clone the repository and copy environment / secrets placeholders:
 
    ```powershell
-   copy .env.example .env
+   copy infra\.env.example infra\.env
    copy infra\dapr\components\secrets.example.json infra\dapr\components\secrets.json
    ```
 
@@ -82,7 +82,8 @@ UI → API Gateway (auth, rate limit, routing) → Intake Service
    - UI: http://localhost:5173
    - API Gateway health: http://localhost:8080/health
    - API docs (Scalar): http://localhost:8080/scalar
-   - Observability (Jaeger): http://localhost:16686
+   - Observability (Jaeger traces): http://localhost:16686
+   - Metrics (Prometheus): http://localhost:9090
 
 4. Local frontend development (optional, hot reload):
 
@@ -180,7 +181,9 @@ Swap the LLM without code changes:
 
 ## Observability
 
-OpenTelemetry metrics and traces export to Jaeger (`http://localhost:16686`) when the compose stack is up. Async pub/sub events carry `traceParent` so Approval → Payment → Notification spans stitch into the same trace as the gateway/intake request. Every business path also propagates `X-Correlation-Id`.
+OpenTelemetry **traces** (and OTLP metrics) still export to Jaeger (`http://localhost:16686`) when the compose stack is up. Each service also exposes a Prometheus scrape endpoint at `/metrics`. Prometheus (`http://localhost:9090`) scrapes ApiGateway, Intake, Approval, Payment, and Notification so you can query custom meters such as `approvalflow_requests_total` / `approvalflow_requests_failures` plus ASP.NET and runtime metrics.
+
+Async pub/sub events carry `traceParent` so Approval → Payment → Notification spans stitch into the same trace as the gateway/intake request. Every business path also propagates `X-Correlation-Id`.
 
 ## CI / CD
 

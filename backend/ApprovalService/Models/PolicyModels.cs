@@ -51,4 +51,6 @@ public sealed record EscalationQueueItem(
     IReadOnlyList<string> CitedRules,
     string Reason,
     string? HumanDecision = null,
-    string? HumanDecisionComment = null);
+    string? HumanDecisionComment = null,
+    string? HumanDecisionActor = null,
+    string? AiReasoningSummary = null);

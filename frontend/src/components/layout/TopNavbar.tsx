@@ -5,6 +5,7 @@ import { SidebarToggleButton } from './SidebarToggleButton'
 
 type TopNavbarProps = {
   role: UserRole
+  username: string
   onLogout: () => void
   isSidebarOpen: boolean
   onOpenSidebar: () => void
@@ -12,6 +13,7 @@ type TopNavbarProps = {
 
 export function TopNavbar({
   role,
+  username,
   onLogout,
   isSidebarOpen,
   onOpenSidebar,
@@ -31,7 +33,9 @@ export function TopNavbar({
         ) : null}
         <div>
           <h1 className="text-base font-semibold text-slate-900">Workspace</h1>
-          <p className="text-sm text-slate-500">{getRoleDescription(role)}</p>
+          <p className="text-sm text-slate-500">
+            {username} · {getRoleDescription(role)}
+          </p>
         </div>
       </div>
 

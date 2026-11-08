@@ -37,6 +37,11 @@ public static class AuditTrailBuilder
 
     private static string BuildAiReasoningSummary(SubmissionStatusResponse submission)
     {
+        if (!string.IsNullOrWhiteSpace(submission.AiReasoningSummary))
+        {
+            return submission.AiReasoningSummary;
+        }
+
         if (IsPaymentTerminalStatus(submission.Status))
         {
             return submission.AiRecommendation is null
@@ -57,12 +62,14 @@ public static class AuditTrailBuilder
 
     private static AuditHumanDecisionSnapshot? BuildHumanDecision(SubmissionStatusResponse submission)
     {
+        var actor = ResolveActor(submission);
+
         if (!string.IsNullOrWhiteSpace(submission.HumanDecision))
         {
             return new AuditHumanDecisionSnapshot(
                 submission.HumanDecision,
                 submission.HumanDecisionComment,
-                "Human Approver");
+                actor);
         }
 
         if (string.Equals(submission.Status, WorkflowStatuses.HumanApproved, StringComparison.Ordinal))
@@ -70,7 +77,7 @@ public static class AuditTrailBuilder
             return new AuditHumanDecisionSnapshot(
                 "Approve",
                 ExtractComment(submission.Reason),
-                "Human Approver");
+                actor);
         }
 
         if (string.Equals(submission.Status, WorkflowStatuses.Rejected, StringComparison.Ordinal))
@@ -78,7 +85,7 @@ public static class AuditTrailBuilder
             return new AuditHumanDecisionSnapshot(
                 "Reject",
                 ExtractComment(submission.Reason),
-                "Human Approver");
+                actor);
         }
 
         if (submission.Reason.Contains("human reviewer", StringComparison.OrdinalIgnoreCase)
@@ -91,7 +98,7 @@ public static class AuditTrailBuilder
                         ? "RequestInfo"
                         : "Approve",
                 ExtractComment(submission.Reason),
-                "Human Approver");
+                actor);
         }
 
         if (IsPaidAfterHumanEscalation(submission))
@@ -99,10 +106,74 @@ public static class AuditTrailBuilder
             return new AuditHumanDecisionSnapshot(
                 "Approve",
                 submission.HumanDecisionComment,
-                "Human Approver");
+                actor);
         }
 
         return null;
+    }
+
+    private static string ResolveActor(SubmissionStatusResponse submission)
+    {
+        if (!string.IsNullOrWhiteSpace(submission.HumanDecisionActor))
+        {
+            return submission.HumanDecisionActor.Trim();
+        }
+
+        var fromReason = ExtractActorFromReason(submission.Reason);
+        if (!string.IsNullOrWhiteSpace(fromReason))
+        {
+            return fromReason;
+        }
+
+        return "Unknown approver";
+    }
+
+    private static string? ExtractActorFromReason(string reason)
+    {
+        if (string.IsNullOrWhiteSpace(reason))
+        {
+            return null;
+        }
+
+        const string noteSuffix = ". Note:";
+        var trimmedReason = reason.Trim();
+        var noteIndex = trimmedReason.IndexOf(noteSuffix, StringComparison.OrdinalIgnoreCase);
+        if (noteIndex >= 0)
+        {
+            trimmedReason = trimmedReason[..noteIndex];
+        }
+
+        var requestedIndex = trimmedReason.IndexOf(" requested by ", StringComparison.OrdinalIgnoreCase);
+        if (requestedIndex >= 0)
+        {
+            var actor = trimmedReason[(requestedIndex + " requested by ".Length)..].Trim();
+            return TrimActorSuffix(actor);
+        }
+
+        var byIndex = trimmedReason.LastIndexOf(" by ", StringComparison.OrdinalIgnoreCase);
+        if (byIndex < 0)
+        {
+            return null;
+        }
+
+        var actorFromBy = trimmedReason[(byIndex + " by ".Length)..].Trim();
+        return TrimActorSuffix(actorFromBy);
+    }
+
+    private static string? TrimActorSuffix(string actor)
+    {
+        if (string.IsNullOrWhiteSpace(actor))
+        {
+            return null;
+        }
+
+        var normalized = actor.Trim().TrimEnd('.');
+        if (string.Equals(normalized, "a human reviewer", StringComparison.OrdinalIgnoreCase))
+        {
+            return null;
+        }
+
+        return normalized;
     }
 
     private static bool IsPaidAfterHumanEscalation(SubmissionStatusResponse submission)
@@ -261,12 +332,14 @@ public static class AuditTrailBuilder
 
     private static string FormatHumanDecisionSummary(AuditHumanDecisionSnapshot humanDecision)
     {
+        var actor = humanDecision.Actor;
+
         return humanDecision.Decision switch
         {
-            "Approve" => "Expense approved by a human reviewer.",
-            "Reject" => "Expense rejected by a human reviewer.",
-            "RequestInfo" => "More information requested before a final decision.",
-            _ => $"Human reviewer decision: {humanDecision.Decision}.",
+            "Approve" => $"Expense approved by {actor}.",
+            "Reject" => $"Expense rejected by {actor}.",
+            "RequestInfo" => $"More information requested by {actor} before a final decision.",
+            _ => $"Human reviewer decision by {actor}: {humanDecision.Decision}.",
         };
     }
 

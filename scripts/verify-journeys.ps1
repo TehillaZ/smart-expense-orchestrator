@@ -43,7 +43,7 @@ function Write-Fail([string]$Message) {
 function Get-AuthToken {
     param([string]$Role)
 
-    $body = @{ role = $Role } | ConvertTo-Json
+    $body = @{ role = $Role; username = "verify-journeys-$Role" } | ConvertTo-Json
     $login = Invoke-RestMethod `
         -Uri "$BaseUrl/auth/login" `
         -Method POST `
@@ -226,7 +226,7 @@ catch {
 
 # Journey 1: INV-1001 auto-approve + pay
 try {
-    $submit = Submit-Invoice -Vendor "Acme Corp" -InvoiceNumber "INV-1001" -Amount 100 -Category "meals"
+    $submit = Submit-Invoice -Vendor "Acme Corp" -InvoiceNumber "INV-1001" -Amount 100 -Category "saas"
     if ($submit.isDuplicate) { throw "First submit should not be duplicate." }
 
     $final = Wait-ForStatus -TrackingId $submit.trackingId -ExpectedStatuses @("Paid")
@@ -252,8 +252,8 @@ catch {
 
 # Journey 3: INV-1007 duplicate paid once
 try {
-    $first = Submit-Invoice -Vendor "Acme Corp" -InvoiceNumber "INV-1007" -Amount 120 -Category "meals"
-    $duplicate = Submit-Invoice -Vendor "Acme Corp" -InvoiceNumber "INV-1007" -Amount 120 -Category "meals"
+    $first = Submit-Invoice -Vendor "Acme Corp" -InvoiceNumber "INV-1007" -Amount 120 -Category "saas"
+    $duplicate = Submit-Invoice -Vendor "Acme Corp" -InvoiceNumber "INV-1007" -Amount 120 -Category "saas"
 
     if ($first.isDuplicate) { throw "First INV-1007 submit should not be duplicate." }
     if (-not $duplicate.isDuplicate) { throw "Second INV-1007 submit should be duplicate." }
@@ -293,7 +293,7 @@ catch {
 
 # Journey 6: two items auto-approve without human intervention
 try {
-    $first = Submit-Invoice -Vendor "Acme Corp" -InvoiceNumber "INV-1002" -Amount 120 -Category "meals"
+    $first = Submit-Invoice -Vendor "Acme Corp" -InvoiceNumber "INV-1002" -Amount 120 -Category "saas"
     $second = Submit-Invoice -Vendor "Acme Corp" -InvoiceNumber "INV-1004" -Amount 180 -Category "travel"
 
     $firstFinal = Wait-ForStatus -TrackingId $first.trackingId -ExpectedStatuses @("Paid")

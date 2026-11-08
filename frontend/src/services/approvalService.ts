@@ -4,6 +4,7 @@ import type {
   ApprovalDecisionResponse,
   EscalationQueueItem,
 } from '../types/api'
+import { getAuthSession } from './authService'
 import { loadSubmissionDetail } from './submissionService'
 import { requestJson } from './apiClient'
 
@@ -34,9 +35,11 @@ export async function loadEscalationItem(
     aiRecommendation: detail.aiRecommendation ?? 'Escalate',
     confidence: detail.aiConfidence ?? 0,
     citedRules: detail.citedRules ?? [],
+    aiReasoningSummary: detail.aiReasoningSummary,
     reason: detail.reason,
     humanDecision: detail.humanDecision ?? null,
     humanDecisionComment: detail.humanDecisionComment ?? null,
+    humanDecisionActor: detail.humanDecisionActor ?? null,
   }
 }
 
@@ -44,6 +47,8 @@ export async function submitApprovalDecision(
   trackingId: string,
   payload: ApprovalDecisionPayload,
 ): Promise<ApprovalDecisionResponse> {
+  const decidedBy = getAuthSession()?.username?.trim() || null
+
   return requestJson<ApprovalDecisionResponse>(API_ENDPOINTS.approvalDecision(trackingId), {
     method: 'POST',
     headers: {
@@ -53,6 +58,7 @@ export async function submitApprovalDecision(
       decision: payload.decision,
       comment: payload.comment ?? null,
       correlationId: null,
+      decidedBy,
     }),
   })
 }

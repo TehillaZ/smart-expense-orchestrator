@@ -67,25 +67,53 @@ public sealed class DaprSubmissionStateStore : ISubmissionStateStore
         return submissions;
     }
 
-    public async Task AddToEscalationQueueAsync(string trackingId)
+    public Task AddToEscalationQueueAsync(string trackingId)
     {
-        var index = await GetQueueIndexAsync();
-        if (index.Contains(trackingId))
+        return MutateQueueIndexAsync(index =>
         {
-            return;
-        }
+            if (index.Contains(trackingId))
+            {
+                return false;
+            }
 
-        index.Add(trackingId);
-        await SaveQueueIndexAsync(index);
+            index.Add(trackingId);
+            return true;
+        });
     }
 
-    public async Task RemoveFromEscalationQueueAsync(string trackingId)
+    public Task RemoveFromEscalationQueueAsync(string trackingId)
     {
-        var index = await GetQueueIndexAsync();
-        if (index.Remove(trackingId))
+        return MutateQueueIndexAsync(index => index.Remove(trackingId));
+    }
+
+    private async Task MutateQueueIndexAsync(Func<List<string>, bool> mutate)
+    {
+        const int maxAttempts = 5;
+
+        for (var attempt = 1; attempt <= maxAttempts; attempt++)
         {
-            await SaveQueueIndexAsync(index);
+            var (index, etag) = await daprClient.GetStateAndETagAsync<List<string>>(StateStoreName, EscalationQueueKey);
+            index ??= [];
+
+            if (!mutate(index))
+            {
+                return;
+            }
+
+            var saved = await daprClient.TrySaveStateAsync(StateStoreName, EscalationQueueKey, index, etag);
+            if (saved)
+            {
+                return;
+            }
+
+            logger.LogWarning(
+                "Escalation queue index update conflicted with a concurrent writer on attempt {Attempt}/{MaxAttempts}; retrying.",
+                attempt,
+                maxAttempts);
         }
+
+        throw new InvalidOperationException(
+            $"Failed to update escalation queue index after {maxAttempts} attempts due to concurrent writes.");
     }
 
     private async Task<SubmissionState?> TryReadCompatibleStateAsync(string trackingId)
@@ -115,9 +143,5 @@ public sealed class DaprSubmissionStateStore : ISubmissionStateStore
         var index = await daprClient.GetStateAsync<List<string>>(StateStoreName, EscalationQueueKey);
         return index ?? [];
     }
-
-    private Task SaveQueueIndexAsync(List<string> trackingIds)
-    {
-        return daprClient.SaveStateAsync(StateStoreName, EscalationQueueKey, trackingIds);
-    }
 }
+

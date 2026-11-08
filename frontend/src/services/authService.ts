@@ -54,13 +54,18 @@ export function clearAuthSession(): void {
   sessionStorage.removeItem(AUTH_STORAGE_KEY)
 }
 
-export async function loginWithRole(role: UserRole): Promise<AuthSession> {
+export async function loginWithRole(role: UserRole, username: string): Promise<AuthSession> {
+  const trimmedUsername = username.trim()
+  if (!trimmedUsername) {
+    throw new Error('Username is required.')
+  }
+
   const response = await requestJson<LoginResponse>(`${API_BASE_URL}/auth/login`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ role }),
+    body: JSON.stringify({ role, username: trimmedUsername }),
   })
 
   if (!isUserRole(response.role)) {

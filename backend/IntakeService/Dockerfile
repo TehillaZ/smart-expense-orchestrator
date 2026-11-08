@@ -9,15 +9,19 @@ EXPOSE 8080
 
 FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 WORKDIR /src
+COPY ["backend/docker-restore.sh", "backend/docker-restore.sh"]
 COPY ["backend/ApprovalFlow.Observability/ApprovalFlow.Observability.csproj", "backend/ApprovalFlow.Observability/"]
 COPY ["backend/ApprovalFlow.Reliability/ApprovalFlow.Reliability.csproj", "backend/ApprovalFlow.Reliability/"]
 COPY ["backend/IntakeService/IntakeService.csproj", "backend/IntakeService/"]
-RUN dotnet restore "backend/IntakeService/IntakeService.csproj"
+RUN sed -i 's/\r$//' backend/docker-restore.sh && chmod +x backend/docker-restore.sh
+RUN --mount=type=cache,target=/root/.nuget/packages \
+    ./backend/docker-restore.sh "backend/IntakeService/IntakeService.csproj"
 COPY ["backend/ApprovalFlow.Observability/", "backend/ApprovalFlow.Observability/"]
 COPY ["backend/ApprovalFlow.Reliability/", "backend/ApprovalFlow.Reliability/"]
 COPY ["backend/IntakeService/", "backend/IntakeService/"]
 WORKDIR "/src/backend/IntakeService"
-RUN dotnet publish "IntakeService.csproj" \
+RUN --mount=type=cache,target=/root/.nuget/packages \
+    dotnet publish "IntakeService.csproj" \
     --configuration Release \
     --no-restore \
     --output /app/publish \

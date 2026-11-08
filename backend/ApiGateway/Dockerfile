@@ -9,13 +9,17 @@ EXPOSE 8080
 
 FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 WORKDIR /src
+COPY ["backend/docker-restore.sh", "backend/docker-restore.sh"]
 COPY ["backend/ApprovalFlow.Observability/ApprovalFlow.Observability.csproj", "backend/ApprovalFlow.Observability/"]
 COPY ["backend/ApiGateway/ApiGateway.csproj", "backend/ApiGateway/"]
-RUN dotnet restore "backend/ApiGateway/ApiGateway.csproj"
+RUN sed -i 's/\r$//' backend/docker-restore.sh && chmod +x backend/docker-restore.sh
+RUN --mount=type=cache,target=/root/.nuget/packages \
+    ./backend/docker-restore.sh "backend/ApiGateway/ApiGateway.csproj"
 COPY ["backend/ApprovalFlow.Observability/", "backend/ApprovalFlow.Observability/"]
 COPY ["backend/ApiGateway/", "backend/ApiGateway/"]
 WORKDIR "/src/backend/ApiGateway"
-RUN dotnet publish "ApiGateway.csproj" \
+RUN --mount=type=cache,target=/root/.nuget/packages \
+    dotnet publish "ApiGateway.csproj" \
     --configuration Release \
     --no-restore \
     --output /app/publish \

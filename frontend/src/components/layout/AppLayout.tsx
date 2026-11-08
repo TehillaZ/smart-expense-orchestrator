@@ -7,7 +7,7 @@ import { TopNavbar } from './TopNavbar'
 
 export function AppLayout() {
   const role = useAppRole()
-  const { logout } = useAuth()
+  const { logout, session } = useAuth()
   const [isSidebarOpen, setIsSidebarOpen] = useState(true)
 
   useEffect(() => {
@@ -26,6 +26,7 @@ export function AppLayout() {
       <div className="flex min-w-0 flex-1 flex-col">
         <TopNavbar
           role={role}
+          username={session?.username ?? 'User'}
           onLogout={logout}
           isSidebarOpen={isSidebarOpen}
           onOpenSidebar={() => setIsSidebarOpen(true)}

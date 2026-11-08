@@ -23,7 +23,8 @@ public sealed class ApprovalDecisionHandler
 
     public async Task<(ApprovalDecisionResponse? Response, IReadOnlyList<string> Errors)> ApplyDecisionAsync(
         string trackingId,
-        ApprovalDecisionRequest request)
+        ApprovalDecisionRequest request,
+        string? decisionActor = null)
     {
         var validationErrors = ApprovalDecisionValidator.Validate(request);
         if (validationErrors.Count > 0)
@@ -46,15 +47,18 @@ public sealed class ApprovalDecisionHandler
             ? state.CorrelationId
             : request.CorrelationId.Trim();
 
+        var actor = string.IsNullOrWhiteSpace(decisionActor) ? null : decisionActor.Trim();
+
         var (status, reason, humanDecision, humanDecisionComment) =
-            MapDecision(request.Decision!.Trim(), request.Comment);
+            MapDecision(request.Decision!.Trim(), request.Comment, actor);
 
         var updated = state with
         {
             Status = status,
             Reason = reason,
             HumanDecision = humanDecision,
-            HumanDecisionComment = humanDecisionComment
+            HumanDecisionComment = humanDecisionComment,
+            HumanDecisionActor = actor
         };
 
         await stateStore.SaveAsync(updated);
@@ -65,9 +69,10 @@ public sealed class ApprovalDecisionHandler
         }
 
         logger.LogInformation(
-            "Applied human decision {Decision} to submission {TrackingId}. New status {Status}.",
+            "Applied human decision {Decision} to submission {TrackingId} by {DecisionActor}. New status {Status}.",
             request.Decision,
             trackingId,
+            actor ?? "unknown",
             status);
 
         if (!string.Equals(request.Decision, "RequestInfo", StringComparison.OrdinalIgnoreCase))
@@ -88,31 +93,33 @@ public sealed class ApprovalDecisionHandler
 
     private static (string Status, string Reason, string HumanDecision, string? HumanDecisionComment) MapDecision(
         string decision,
-        string? comment)
+        string? comment,
+        string? actor)
     {
         var trimmedComment = string.IsNullOrWhiteSpace(comment) ? null : comment.Trim();
+        var actorLabel = string.IsNullOrWhiteSpace(actor) ? "a human reviewer" : actor.Trim();
 
         return decision switch
         {
             "Approve" => (
                 ApprovalStatuses.HumanApproved,
                 trimmedComment is null
-                    ? "Expense approved by a human reviewer."
-                    : $"Expense approved by a human reviewer. Note: {trimmedComment}",
+                    ? $"Expense approved by {actorLabel}."
+                    : $"Expense approved by {actorLabel}. Note: {trimmedComment}",
                 "Approve",
                 trimmedComment),
             "Reject" => (
                 ApprovalStatuses.Rejected,
                 trimmedComment is null
-                    ? "Expense rejected by a human reviewer."
-                    : $"Expense rejected by a human reviewer. Note: {trimmedComment}",
+                    ? $"Expense rejected by {actorLabel}."
+                    : $"Expense rejected by {actorLabel}. Note: {trimmedComment}",
                 "Reject",
                 trimmedComment),
             "RequestInfo" => (
                 ApprovalStatuses.Escalated,
                 trimmedComment is null
-                    ? "More information was requested before a final decision."
-                    : $"More information requested: {trimmedComment}",
+                    ? $"More information was requested by {actorLabel} before a final decision."
+                    : $"More information requested by {actorLabel}: {trimmedComment}",
                 "RequestInfo",
                 trimmedComment),
             _ => throw new InvalidOperationException($"Unsupported decision: {decision}")

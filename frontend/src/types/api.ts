@@ -23,10 +23,12 @@ export type SubmissionStatusResponse = {
   aiRecommendation?: string | null
   aiConfidence?: number | null
   citedRules?: string[] | null
+  aiReasoningSummary?: string | null
   policyVersion?: string | null
   autonomyCeilingAtDecision?: number | null
   humanDecision?: string | null
   humanDecisionComment?: string | null
+  humanDecisionActor?: string | null
   duplicateResubmitCount?: number
 }
 
@@ -54,9 +56,11 @@ export type EscalationQueueItem = {
   aiRecommendation: string
   confidence: number
   citedRules: string[]
+  aiReasoningSummary?: string | null
   reason: string
   humanDecision?: string | null
   humanDecisionComment?: string | null
+  humanDecisionActor?: string | null
 }
 
 export type ApprovalDecision = 'Approve' | 'Reject' | 'RequestInfo'

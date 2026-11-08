@@ -1,0 +1,70 @@
+# Dapr Component CRDs — the Kubernetes equivalent of infra/dapr/components/*.yaml.
+# Applied directly to the cluster; the Dapr control plane (installed via `dapr init -k`)
+# watches for these and makes them available to any pod with dapr.io/enabled: "true".
+#
+# redisHost points at the in-cluster Service DNS name instead of the compose service name.
+# The secret store stays secretstores.local.file, same as Docker Compose — the app queries
+# secrets by colon-path ("LlmProvider:ApiKey"), which Dapr's native secretstores.kubernetes
+# can't serve (it treats the whole query as a K8s object name). The backing JSON file comes
+# from the approvalflow-dapr-secrets-file Secret, mounted into the sidecar via the
+# dapr.io/volume-mounts annotation on each Deployment (see e.g. 21-approvalservice.yaml).
+apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+  name: approval-state
+  namespace: approvalflow
+spec:
+  type: state.redis
+  version: v1
+  metadata:
+    - name: redisHost
+      value: redis.approvalflow.svc.cluster.local:6379
+    - name: enableTLS
+      value: "false"
+    - name: actorStateStore
+      value: "false"
+    - name: keyPrefix
+      value: "submission"
+scopes:
+  - intakeservice
+  - approvalservice
+  - paymentservice
+  - notificationservice
+---
+apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+  name: order-pubsub
+  namespace: approvalflow
+spec:
+  type: pubsub.redis
+  version: v1
+  metadata:
+    - name: redisHost
+      value: redis.approvalflow.svc.cluster.local:6379
+    - name: enableTLS
+      value: "false"
+scopes:
+  - intakeservice
+  - approvalservice
+  - paymentservice
+  - notificationservice
+---
+apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+  name: local-secret-store
+  namespace: approvalflow
+spec:
+  type: secretstores.local.file
+  version: v1
+  metadata:
+    - name: secretsFile
+      value: /components/secrets.json
+    - name: nestedSeparator
+      value: ":"
+scopes:
+  - intakeservice
+  - approvalservice
+  - paymentservice
+  - notificationservice

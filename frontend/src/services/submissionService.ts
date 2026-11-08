@@ -5,7 +5,12 @@ import type {
   SubmissionRequestPayload,
   SubmissionStatusResponse,
 } from '../types/api'
-import type { ExpenseCategory, SubmissionDetail, SubmissionRecord } from '../types/submission'
+import {
+  toBackendCategory,
+  type ExpenseCategory,
+  type SubmissionDetail,
+  type SubmissionRecord,
+} from '../types/submission'
 import { mapBackendStatusToUi } from '../utils/mapSubmissionStatus'
 import { ApiRequestError, requestJson } from './apiClient'
 
@@ -27,7 +32,7 @@ export async function submitExpense(
     vendor: input.vendorName,
     invoiceNumber: input.invoiceNumber,
     amount: input.amount,
-    category: input.category,
+    category: toBackendCategory(input.category),
   }
 
   return requestJson<SubmissionAcceptedResponse>(API_ENDPOINTS.submissions, {
@@ -89,6 +94,7 @@ function toSubmissionRecord(
     duplicateResubmitCount,
     humanDecision: intake.humanDecision ?? null,
     humanDecisionComment: intake.humanDecisionComment ?? null,
+    humanDecisionActor: intake.humanDecisionActor ?? null,
   }
 }
 
@@ -106,6 +112,7 @@ function toSubmissionDetail(
     aiRecommendation: intake.aiRecommendation,
     aiConfidence: intake.aiConfidence,
     citedRules: intake.citedRules ?? undefined,
+    aiReasoningSummary: intake.aiReasoningSummary,
     policyVersion: intake.policyVersion,
     autonomyCeilingAtDecision: intake.autonomyCeilingAtDecision,
   }

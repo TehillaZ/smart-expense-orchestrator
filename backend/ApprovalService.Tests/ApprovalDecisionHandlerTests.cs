@@ -7,6 +7,28 @@ namespace ApprovalService.Tests;
 public class ApprovalDecisionHandlerTests
 {
     [Fact]
+    public async Task ApplyDecisionAsync_WithApprove_RecordsDecisionActor()
+    {
+        var store = new FakeSubmissionStateStore();
+        store.Seed(CreateEscalatedState());
+        await store.AddToEscalationQueueAsync("tracking-1");
+        var handler = new ApprovalDecisionHandler(
+            store,
+            new FakePaymentRequestPublisher(),
+            new NoOpMetricsRecorder(),
+            NullLogger<ApprovalDecisionHandler>.Instance);
+
+        var (_, errors) = await handler.ApplyDecisionAsync(
+            "tracking-1",
+            new ApprovalDecisionRequest("Approve", "Looks good", "correlation-1"),
+            "Tehila Cohen");
+
+        Assert.Empty(errors);
+        Assert.Equal("Tehila Cohen", store.LastSaved!.HumanDecisionActor);
+        Assert.Contains("Tehila Cohen", store.LastSaved.Reason, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task ApplyDecisionAsync_WithApprove_UpdatesStatusAndRemovesFromQueue()
     {
         var store = new FakeSubmissionStateStore();

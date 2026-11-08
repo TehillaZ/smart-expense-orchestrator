@@ -56,6 +56,61 @@ public class AuditTrailBuilderTests
     }
 
     [Fact]
+    public void Build_ExtractsActorFromReasonWhenActorFieldMissing()
+    {
+        var submission = new SubmissionStatusResponse(
+            "tracking-6",
+            "correlation-6",
+            "Zeta LLC",
+            "INV-6006",
+            650m,
+            "Travel",
+            WorkflowStatuses.Paid,
+            "Expense approved by Tehila Cohen.",
+            "Escalate",
+            0.88m,
+            ["AUTONOMY-CEILING"],
+            "v1",
+            HumanDecision: "Approve");
+
+        var audit = AuditTrailBuilder.Build(submission, notification: null);
+
+        Assert.NotNull(audit.HumanDecision);
+        Assert.Equal("Tehila Cohen", audit.HumanDecision!.Actor);
+        Assert.Contains(
+            audit.Timeline,
+            item => item.Step == "HumanDecision"
+                && item.Summary.Contains("Tehila Cohen", StringComparison.Ordinal)
+                && item.Actor == "Tehila Cohen");
+    }
+
+    [Fact]
+    public void Build_IncludesHumanDecisionActorForPaidSubmissionAfterEscalation()
+    {
+        var submission = new SubmissionStatusResponse(
+            "tracking-4",
+            "correlation-4",
+            "Delta Co",
+            "INV-4004",
+            9500m,
+            "Travel",
+            WorkflowStatuses.Paid,
+            "Payment of $9,500.00 completed successfully.",
+            "Escalate",
+            0.82m,
+            ["TRAVEL-02"],
+            "v1",
+            HumanDecision: "Approve",
+            HumanDecisionComment: "Approved after receipt review.",
+            HumanDecisionActor: "Tehila Cohen");
+
+        var audit = AuditTrailBuilder.Build(submission, notification: null);
+
+        Assert.NotNull(audit.HumanDecision);
+        Assert.Equal("Tehila Cohen", audit.HumanDecision!.Actor);
+    }
+
+    [Fact]
     public void Build_IncludesHumanDecisionForPaidSubmissionAfterEscalation()
     {
         var submission = new SubmissionStatusResponse(

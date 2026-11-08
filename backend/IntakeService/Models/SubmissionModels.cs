@@ -31,7 +31,9 @@ public sealed record SubmissionStatusResponse(
     decimal? AutonomyCeilingAtDecision = null,
     string? HumanDecision = null,
     string? HumanDecisionComment = null,
-    int DuplicateResubmitCount = 0);
+    string? HumanDecisionActor = null,
+    int DuplicateResubmitCount = 0,
+    string? AiReasoningSummary = null);
 
 public sealed record ValidationErrorResponse(
     IReadOnlyList<string> Errors);

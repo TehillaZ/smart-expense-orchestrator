@@ -14,6 +14,13 @@ public sealed class RequestMetricsMiddleware
 
     public async Task InvokeAsync(HttpContext context)
     {
+        if (context.Request.Path.StartsWithSegments(
+                ObservabilityServiceCollectionExtensions.PrometheusMetricsPath))
+        {
+            await next(context);
+            return;
+        }
+
         var operation = $"{context.Request.Method} {context.Request.Path}";
         var succeeded = true;
 
